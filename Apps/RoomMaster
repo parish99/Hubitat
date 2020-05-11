@@ -1,6 +1,5 @@
 
-
-/* Copyright 2020 csromei
+/* Copyright 2020 Parish
 *
 *   Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -17,14 +16,14 @@
 */
  
  definition(
-    name		: "KeenectLiteMaster",
-    namespace	: "Craig.Romei",
-    author		: "Craig Romei",
-    description	: "Keen Vent Manager",
+    name		: "RoomMaster",
+    namespace	: "Parish",
+    author		: "Parish",
+    description	: "Room Manager",
     category	: "My Apps",
-    iconUrl		: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
-    iconX2Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg",
-	iconX3Url	: "https://raw.githubusercontent.com/napalmcsr/SmartThingsStuff/master/smartapps/keenect/clipart-thermometer-thermometer-clipart-free-6-thermometer-clip-art-clipartix-free-clipart.jpg"
+    iconUrl		: "",
+    iconX2Url	: "",
+	iconX3Url	: ""
     )
 
 preferences {
@@ -40,7 +39,7 @@ def pageConfig()
 	section("Reports")
 	{
 	}
-	section("Setup")
+	section("HVAC Setup")
 	{
 		input name : "tStat", type : "capability.thermostat", title: "Main Household thermostat", required: true
 		input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
@@ -49,11 +48,11 @@ def pageConfig()
         input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 300, submitOnChange: true
         input "staticValue", "number", title: "Enter The Total in² of static vents:", defaultValue: 0, submitOnChange: true
     }
-	section("Zones")
+	section("Rooms")
 	{
 		if (installed){
-			section("Zones"){
-				app(name: "childZones", appName: "KeenectLiteZone", namespace: "Craig.Romei", title: "Create New Vent Zone...", multiple: true)	
+			section("Rooms"){
+				app(name: "childRooms", appName: "Room", namespace: "Parish", title: "Create New Room...", multiple: true)	
 			}
         }
 		
@@ -187,7 +186,7 @@ def display(){
 
 def updateCheck(){
     setVersion()
-        def paramsUD = [uri: "https://napalmcsr.github.io/Hubitat_Napalmcsr/versions.json"]   // This is the URI & path to your hosted JSON file
+        def paramsUD = [uri: "https://parish99.github.io/Hubitat/versions.json"]   // This is the URI & path to your hosted JSON file
        try {
         httpGet(paramsUD) { respUD ->
 //  log.warn " Version Checking - Response Data: ${respUD.data}"   // Troubleshooting Debug Code 
@@ -224,6 +223,6 @@ def updateCheck(){
 }
 
 def setVersion(){
-                state.version = "1.0.1" // Version number of this app
-                state.InternalName = "KeenectLiteMaster"   // this is the name used in the JSON file for this app
+                state.version = "1.0.0" // Version number of this app
+                state.InternalName = "RoomMaster"   // this is the name used in the JSON file for this app
 				}
