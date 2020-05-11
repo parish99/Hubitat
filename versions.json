@@ -1,0 +1,25 @@
+{
+	"Comment":"Last updated: 05/11/2020",
+	"copyright":" &#9400; 2020 Parish",
+	"author":"Parish",
+	"versions":{
+		"Application":{
+
+			"RoomMaster":"1.0.0",
+			"Room":"1.0.0",
+
+		},
+		"Driver":{
+
+		},
+		"UpdateInfo":{
+			"Application":{
+				"RoomMaster":"<b>Update Information: </b> Updated: 4/12/2019 - removed mode selection",
+				"Room":"<b>Update Information: </b> Updated: 6/12/2019 - Added Digital Control and dashboard tile support"
+			},
+			"Driver":{
+
+			}
+		}
+	}
+}	
