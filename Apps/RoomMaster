@@ -1,168 +1,294 @@
 
  definition(
-    name		: "RoomMaster",
-    namespace	: "Parish",
-    author		: "Parish",
-    description	: "Room Manager",
-    category	: "My Apps",
-    iconUrl		: "",
-    iconX2Url	: "",
-	iconX3Url	: ""
-    )
+   name		: "RoomMaster",
+   namespace	: "Parish",
+   author		: "Parish",
+   description	: "Room Manager",
+   category	: "My Apps",
+   iconUrl		: "",
+   iconX2Url	: "",
+   iconX3Url	: ""
+   )
 
 
 preferences {page(name: "pageConfig")}
-// Doing it this way elimiates the default app name/mode options.
 
 def pageConfig(){
-    dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0){
+   dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0){
 
-    section("HVAC Setup"){
-		input name : "tStat", type : "capability.thermostat", title: "Main Household thermostat", required: true
-		input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
-	    input name : "blowerRun", type : "capability.contactSensor", title: "Blower Running Input", required: false
-        input name : "staticPres", type : "capability.contactSensor", title: "Static Pressure Overpressure Swtich", required: false
-        input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 300, submitOnChange: true
-        input "staticValue", "number", title: "Enter The Total in² of static vents:", defaultValue: 0, submitOnChange: true
-    }
+      section("HVAC Setup"){
+         input name : "tStat", type : "capability.thermostat", title: "Main Household thermostat", required: true
+         input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
+         input name : "blowerRun", type : "capability.contactSensor", title: "Blower Running Input", required: false
+         input name : "staticPres", type : "capability.contactSensor", title: "Static Pressure Overpressure Swtich", required: false
+         input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 300, submitOnChange: true
+         input "staticValue", "number", title: "Enter The Total in² of static vents:", defaultValue: 0, submitOnChange: true
+         input "maxDelta", "number", title: "Enter The Max Room Delta:", defaultValue: 3, submitOnChange: true
+      }
         
-    section("Rooms"){
+      section("Rooms"){
 		if (installed){
-		section("Rooms"){
+         section("Rooms"){
             app(name: "childRooms", appName: "Room", namespace: "Parish", title: "Create New Room...", multiple: true)
-        }
-        }	
-    }
+         }
+      }	
+      }
         
-    section("Logging")
-	    {input(
-		name : "logLevel"
-		,title : "IDE logging level" 
-		,multiple : false
-		,required : true
-		,type : "enum"
-		,options  : getLogLevels()
-		,submitOnChange : false
-		,defaultValue : "0")  
-	}     
+      section("Logging"){
+         input(name: "logLevel",title: "IDE logging level" ,multiple: false ,required: true ,type: "enum" ,options: getLogLevels() ,submitOnChange: false ,defaultValue: "0")  
+      }     
 	}
 }
 
 //=========================================================================
-def installed() {
+def installed(){
     initialize()
-}
-def updated() {
-    initialize()
-}
-def initialize() {
-	infolog "Initializing"
-    unsubscribe()
-    debuglog "Getting Thermostat running State" 
-    subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)  
-    subscribe(blowerRun, "contact", blowerHandler) 
-	state.mainState = state.mainState ?: getMainTstatState()
-    debuglog "Getting Blower State "
-    state.blowerRun = blowerRun.currentValue("contact")
-    debuglog "There are ${childApps.size()} installed child apps"
-    state.remove("roomMap")
-    state.roomMap = [:]
-    
-    childApps.each {child ->
-    debuglog "Child app: ${child.label}"
-    state.childTemps= [:]
-    state.childSetpoints= [:]
-    state.childVentSize= [:]
-    state.childDelta= [:]
-    //debuglog "Remove State rooms"
-    //state.remove("rooms")
-    //state.remove("childVentOpenings")
-    }  
-    
-    subscribe(tStat, "thermostatMode", setTstatMode)
+   }
+   
+def updated(){
+   unsubscribe()
+   initialize()
+   }
+   
+def initialize(){
+   infolog "Initializing"
+   subscribe(tStat, "thermostatMode", setTstatMode)
 	debuglog "Getting local virtual Thermostat thermostatMode" 
 	state.thermostatMode = tStat.currentValue("thermostatMode").toUpperCase()
-}
+   debuglog "Getting Thermostat running State" 
+   subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)  
+   state.mainState = tStat.currentValue("thermostatOperatingState").toUpperCase()
+   //state.mainState = state.mainState ?: getMainTstatState()
+   subscribe(blowerRun, "contact", blowerHandler)
+   debuglog "Getting Blower State "
+   state.blowerRun = blowerRun.currentValue("contact")
+   debuglog "There are ${childApps.size()} installed child apps"
+   //state.remove("roomMap")
+   //state.remove("roomData")
+   state.roomMap = [:]
+   state.roomData = [:]
+   //state.roomData.area=0
+   //state.areaTotal=0
+   //state.deltaTotal=0
+    
+   //state.roomMap.room.area=0
+   //state.roomMap.room.delta=0
+    
+   childApps.each {child ->
+      debuglog "Child app: ${child.label}"
+      //state.childTemps= [:]
+      //state.childSetpoints= [:]
+      state.childVentSize= [:]
+      state.childDelta= [:]
+      state.childVentSP= [:]
+      //debuglog "Remove State rooms"
+      //state.remove("rooms")
+      //state.remove("childVentOpenings")
+      }  
+   }
 
 def setTstatMode(evt){
 	infolog "Running setTstatMode"
 	state.thermostatMode = evt.value.toUpperCase()
-    debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
-	    childApps.each {child -> 
-            child.MainTstatStateChange(state.thermostatMode)}
-}
+   debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
+	   childApps.each {child -> 
+         child.MainTstatStateChange(state.thermostatMode)
+      }
+   }
 
 def getMainTstatState(){
 	def TstatState = tStat.currentValue("thermostatOperatingState")
-	if (TstatState!=null){TstatState = TstatState.toUpperCase()}
-    else {TstatState = "NULL"}
-    debuglog "getMainTstatState Main TstatState : ${TstatState}"
+      if (TstatState!=null){TstatState = TstatState.toUpperCase()}
+      else {TstatState = "NULL"}
+   debuglog "getMainTstatState Main TstatState : ${TstatState}"
 	return TstatState
-}
+   }
 
 def OperatingStateHandler(evt){
 	debuglog "OperatingStateHandler event : ${evt}"
 	def newTstatState = evt.value.toUpperCase()
-	if (newTstatState != state.mainState){
-		state.mainState = newTstatState
-		//SendTstatStateChange()
-    }
-}
-
-/*
-def SendTstatStateChange(){
-	debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
-	    childApps.each {child -> 
-            child.MainTstatStateChange(state.thermostatMode)}
-}
-*/
+      if (newTstatState != state.mainState){
+         state.mainState = newTstatState
+         //SendTstatStateChange()
+         }
+   }
 
 def blowerHandler(evt){
     debuglog "Blower Run event : ${evt}"
     state.blowerRun = evt.value
-}
+    return state.blowerRun
+   }
 
 // Called from child during init
 def HVACmode(){
     //return state.blowerRun
     return state.thermostatMode
-}
-
+   }
 
 // Called from child when there is an update for the parent
 def SetChildStats(RoomStat){
-    debuglog RoomStat
-    state.roomMap[RoomStat.room] = RoomStat
-    state.childTemps[RoomStat.room]= RoomStat.currentTemperature
-    state.childSetpoints[RoomStat.room]= RoomStat.setpoint
-    state.childVentSize[RoomStat.room]= RoomStat.roomVentArea
-    state.childDelta[RoomStat.room]= RoomStat.delta
-//    debuglog "Current Room Temperature ${state.childTemps}"
-//    debuglog "Current Room Setpoint ${state.childSetpoints}"
-//    debuglog "Current Open Vent Area ${state.childVentOpenings}"
-}
+   debuglog RoomStat
+   if(RoomStat.delta==0) RoomStat.delta=0.1 //avoids a bunch of divide by zero crap
+   state.roomData.area=RoomStat.area
+   state.roomData.delta=RoomStat.delta
+   debuglog RoomData
+   state.roomMap[RoomStat.room]=state.roomData
+   state.childVentSize[RoomStat.room]= RoomStat.area
+   state.childDelta[RoomStat.room]= RoomStat.delta
+   //debuglog state.roomMap
+   //state.roomMap[RoomStat.room] = RoomStat.delta
+   //debuglog "oiyiuyiuyu ${state.roomMap}"
+   //state.roomMap[RoomStat.room].delta = RoomStat.delta
+   //state.childTemps[RoomStat.room]= RoomStat.currentTemperature
+   //state.childSetpoints[RoomStat.room]= RoomStat.setpoint
+   //debuglog "Current Room Temperature ${state.childTemps}"
+   //debuglog "Current Room Setpoint ${state.childSetpoints}"
+   //debuglog "Current Open Vent Area ${state.childVentOpenings}"
+   debuglog "roomMap values ${state.roomMap[RoomStat.room]}"
+   debuglog "roomMap values all ${state.roomMap}"
+   AddTotalVentArea()
+   debuglog "added area"
+   }
+
+// Do some calculations
+def AddTotalVentArea(){
+   state.areaTotal=0
+   state.deltaTotal=0
+   state.roomMap.each{k, v-> 
+      state.areaTotal = state.areaTotal + v.area
+      state.deltaTotal = state.deltaTotal + v.delta
+      }
+      
+//Setup initial values for data 
+   state.roomMap.each{k, v->  
+      v.deltaWGT = (childApps.size() / state.areaTotal * v.area).toFloat()
+      v.newDelta = (v.delta / v.deltaWGT).toFloat()
+      if (v.delta > maxDelta) v.initArea = v.area       
+      if (v.delta < 0) v.initArea = 0
+      if ((v.delta >= 0) && (v.delta <= maxDelta)) v.initArea = (v.area/maxDelta*v.delta).toFloat()
+      }
+    
+//Get the initAreaSum and remainder 
+   state.initAreaSum=0
+   state.roomMap.each{k, v->  
+      state.initAreaSum = state.initAreaSum + v.initArea    
+      }    
+   state.initRem = targetArea - state.initAreaSum
+    
+//Get the active area
+   state.actAreaSum=0
+   state.roomMap.each{k, v->  
+      if (v.delta>0) v.actArea = v.area  
+      else v.actArea = 0
+      state.actAreaSum = state.actAreaSum + v.actArea
+      }
+
+
+//******  initAreaSum is greater than or Equal to the Target
+   state.stage=0
+    if (state.initAreaSum >= targetArea) {
+           state.stage=1
+           state.actDeltaSum=0
+           state.roomMap.each{k, v->  
+               if(v.delta>0) v.actDelta = v.newDelta
+               else v.actDelta = 0
+               
+               state.actDeltaSum = state.actDeltaSum + v.actDelta
+           }
+        
+           state.deltaProdSum = 0
+           state.roomMap.each{k, v->  
+               if(v.actDelta!=0) v.deltaProd = (1/state.actDeltaSum/v.actDelta).toFloat()
+               else v.deltaProd = 0
+        
+               state.deltaProdSum = state.deltaProdSum + v.deltaProd
+           }
+    
+            state.roomMap.each{k, v->  
+               if(v.deltaProd>0) v.prodScale = (1/state.deltaProdSum*v.deltaProd).toFloat()
+               else v.prodScale = 0
+           }
+    
+    //Start the reduction loop.
+        //state.loopSum=state.initAreaSum
+        state.loopRem=state.initRem
+        state.roomMap.each{k, v->  
+               v.loopArea = v.initArea
+        }
+    
+        state.count = 0
+    while (state.loopRem <(-1) && state.count <100) {
+           
+            state.loopSum=0
+            state.roomMap.each{k, v->  
+               v.reduce = (state.loopRem*v.prodScale).toFloat()
+               if(v.reduce*(-1) > v.loopArea) v.reduce = (v.loopArea * (-1)).toFloat()
+               v.loopArea = (v.loopArea+v.reduce).toFloat()
+               state.loopSum = (state.loopSum+v.loopArea) .toFloat()           
+            }
+        state.loopRem = (targetArea -state.loopSum) .toFloat()
+        state.count++
+      } 
+      state.roomMap.each{k, v->    
+          state.childVentSP[k]= (v.loopArea).toInteger()
+      } 
+       state.stage=10
+   }   //end the if block 
+      
+    //initAreaSum is Less than Target and actAreaSum is Greater or Equal to Target
+   if (state.initAreaSum < targetArea && state.actAreaSum > targetArea) {
+        state.stage=2   
+       state.actDeltaSum=0
+           state.roomMap.each{k, v->  
+               if(v.delta>0) v.actDelta = v.newDelta
+               else v.actDelta = 0
+               
+               state.actDeltaSum = state.actDeltaSum + v.actDelta
+           }
+        
+            state.roomMap.each{k, v->  
+               if(v.actDelta>0) v.prodScale = (1/state.actDeltaSum*v.actDelta).toFloat()
+               else v.actDelta = 0
+           }
+    
+    //Start the reduction loop
+        state.loopRem=state.initRem
+        state.roomMap.each{k, v->  
+               v.loopArea = v.initArea
+        }
+    
+        state.count = 0
+    while (state.loopRem > 0 && state.count <100) {
+           
+            state.loopSum=0
+            state.roomMap.each{k, v->  
+               v.reduce = (state.loopRem*v.prodScale).toFloat()
+               if(v.reduce + v.loopArea > v.area) v.reduce = (v.area - v.loopArea).toFloat()
+               v.loopArea = (v.loopArea+v.reduce).toFloat()
+               state.loopSum = (state.loopSum+v.loopArea) .toFloat()         
+            }
+        state.loopRem = (targetArea -state.loopSum) .toFloat()
+        state.count++
+      }  
+          state.roomMap.each{k, v->    
+          state.childVentSP[k]= (v.loopArea).toInteger()
+          }
+    state.stage=20
+    //end stage two
+   }   //end the if block for stage 2       
+    
+    
+    //initAreaSum is Less than Target and actAreaSum is Less than Target (use inactive vents)
+    
+        
+    
+   
+}// end calc
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Debug/Logging
+//    ========== Debug/Logging ==========
 def debuglog(statement){   
     def logL = 0
     if (logLevel) logL = logLevel.toInteger()
@@ -178,5 +304,5 @@ def infolog(statement){
 }
 
 def getLogLevels() {
-    return [["0":"None"],["1":"Running"],["2":"NeedHelp"]]
+    return [["0":"None"],["1":"Info"],["2":"Debug"]]
 }
