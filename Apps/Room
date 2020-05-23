@@ -8,13 +8,11 @@ definition(
     iconUrl: "",
     iconX2Url: "",
 	iconX3Url	: ""
-       
-)
+   )
 
-preferences {page(name: "pageConfig")} // Doing it this way elimiates the default app name/mode options.
+preferences {page(name: "pageConfig")} 
 
-def pageConfig()
-{
+def pageConfig(){
 	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) 
    {
 
@@ -23,7 +21,7 @@ def pageConfig()
       section("Pause") {input "PauseRoom", "bool", title: "Pause control for this room.", required: true, defaultValue: false, submitOnChange: true}
         
       section("Devices"){
-         input "tStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
+         input "vStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
          input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
          input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
          input "humSensor", "capability.relativeHumidityMeasurement", title: "Zone Humidity Sensor", multiple: false, required: false
@@ -32,67 +30,35 @@ def pageConfig()
          input "motion", "capability.motionSensor", title: "Zone Motion Sensor", multiple: false, required: false
       }
       section("Settings"){
-         //input "VentControlType", "enum", title: "How reactive do you want the vents?", submitOnChange: true ,required : true,defaultValue	: "Normal", options: ["Aggressive", "Normal", "Slow","Binary"]
-         //input name: "heatMin", title : "Heating minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-         //input name: "heatMax", title : "Heating maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
-         //input name: "coldMin", title : "Cooling minimum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-         //input name: "coldMax", title : "Cooling maximum vent opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "100"
-         //input name: "Fan", title : "Fan mode opening" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "0"
-         //input name: "TreatIdleAsFan", title : "Treat Idle as Fan Only?", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : false
-         input name: "roomVentArea", title : "Room Vent Size in²" ,multiple	: false ,required : true ,type : "number" ,defaultValue	: "38"      
-      }
+         input name: "Area", title: "Room Vent Size in²" ,multiple: false ,required: true ,type: "number" ,defaultValue: "38"      
+         }
 
-    section("Logging")
-	    {input(
-		name : "logLevel"
-		,title : "IDE logging level" 
-		,multiple : false
-		,required : true
-		,type : "enum"
-		,options  : getLogLevels()
-		,submitOnChange : false
-		,defaultValue : "0")  
-	    } 
+      section("Logging"){
+         input(name: "logLevel" ,title: "IDE logging level" ,multiple: false ,required: true ,type: "enum" ,options: getLogLevels() ,submitOnChange: false ,defaultValue: "0")  
+	   } 
 
 	}
-}
+   }
 
 def installed() {
     initialize()
-}
+   }
 
 def updated() {
     unsubscribe()
     initialize()
-}
+   }
 
 def initialize(){
 	infolog "Init"
 	state.clear()
-    state.ventLevel=0
-    state.delta = 0
-   
-// SUBSCRIBE
+    state.area = Area 
     debuglog "Subscribe to tempSensor"
     subscribe(tempSensor, "temperature", tempHandler)
+    debuglog "Getting current Room Temperature" 
+    state.currentTemperature = tempSensor.currentValue("temperature")  
     debuglog "Subscribe to vents"
     subscribe(vents, "level", ventHandler)
-    debuglog "Subscribe to humidity"
-    subscribe(humSensor, "humidity", humHandler)
-    debuglog "Subscribe to motion"
-    subscribe(motion, "motion.active", motionAHandler)
-    debuglog "Subscribe to Tstat"
-    subscribe(tStat, "heatingSetpoint", setTstatHSP)
-    subscribe(tStat, "coolingSetpoint", setTstatCSP)
-   
-// GET CURRENT VALUES
-    debuglog "Getting current Zone Temperature" 
-    state.currentTemperature = tempSensor.currentValue("temperature")
-    debuglog "Getting current Zone Humidity" 
-    state.currentHumidity = humSensor.currentValue("humidity")
-    debuglog "Getting current Zone Motion" 
-    state.currentMotion = motion.currentValue("motion")
-    state.occupied = motion.currentValue("motion")
     debuglog "Getting All Vent Opening"
     state.VentOpeningMap = [:]
     state.ventLevel =0
@@ -100,36 +66,49 @@ def initialize(){
 		debuglog "Getting Vent ${vent}"
 		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
         state.ventLevel = (vent.currentValue("level") + state.ventLevel)
-   }
-
-    debuglog "Getting House Thermostat State and evaluating zone"
-    //state.HVACstate = parent.HVACstate()
-    state.HVACmode = parent.HVACmode()
-	infolog "Done init"
-    state.roomVentArea = roomVentArea
-    debuglog "Getting Thermostat Heating Setpoint" 
-	state.zoneHeatSetpoint = tStat.currentValue("heatingSetpoint")
-	//debuglog "Getting Thermostat Cooling Setpoint" 
-	//state.zoneColdSetpoint = tStat.currentValue("coolingSetpoint")
-    state.currentSetPoint = state.zoneHeatSetpoint
+        }      
+    debuglog "Subscribe to humidity"
+    subscribe(humSensor, "humidity", humHandler)
+    debuglog "Getting current Zone Humidity" 
+    state.currentHumidity = humSensor.currentValue("humidity")    
+    debuglog "Subscribe to motion"
+    subscribe(motion, "motion.active", motionAHandler)
+    debuglog "Getting current Zone Motion" 
+    state.currentMotion = motion.currentValue("motion")
+    state.occupied = motion.currentValue("motion")
+    debuglog "Getting House Thermostat State"
+    state.HVACmode = parent.HVACmode() 
+    debuglog "Subscribe to Room Thermostat"
+    subscribe(vStat, "heatingSetpoint", setTstatHSP)
+    subscribe(vStat, "coolingSetpoint", setTstatCSP)
+    debuglog "Getting Room Thermostat Setpoint" 
+	state.zoneHeatSetpoint = vStat.currentValue("heatingSetpoint")
+    state.zoneCoolSetpoint = vStat.currentValue("coolingSetpoint")
+    if (state.HVACmode=="HEAT") state.currentSetPoint = state.zoneHeatSetpoint
+    else if (state.HVACmode=="COOL") state.currentSetPoint = state.zoneCoolSetpoint
+    else state.currentSetPoint = 70
+        
+    setDelta()
     updateMaster()
-}
+	infolog "Done init"    
+    
+   }
 
 // EVENT HANDLERS
 def tempHandler(evt) {
 	infolog "Running tempHandler"
-	state.currentTemperature = evt.value.toFloat()
+	state.currentTemperature = evt.value.toFloat().round(1)
 	debuglog "Zone Temperature set to ${state.currentTemperature}"
 	updateMaster()
     setDelta()
-}
+   }
 
 def humHandler(evt) {
 	infolog "Running humHandler"
-	state.currentHumidity = evt.value.toFloat()
+	state.currentHumidity = evt.value.toFloat().round(1)
 	debuglog "Zone Humidity set to ${state.currentHumidity}"
 	updateMaster()
-}
+   }
 
 def motionAHandler(evt) {
 	infolog "Running motionAHandler"
@@ -137,7 +116,7 @@ def motionAHandler(evt) {
 	state.currentMotion = evt.value
 	debuglog "Zone Motion set to ${state.currentMotion}"
 	updateMaster()
-}
+   }
 
 def ventHandler(evt) {
 	infolog "Running ventHandler for ${evt.device} value: ${evt.value}"
@@ -154,7 +133,7 @@ def ventHandler(evt) {
     debuglog state.VentOpeningMap
 	debuglog "${evt.device} was set to ${evt.value}"
     updateMaster()
-}
+   }
 
 def setTstatHSP(evt) {
 	infolog "Running setTstatHSP"
@@ -163,7 +142,7 @@ def setTstatHSP(evt) {
 	debuglog "Hot setpoint set to ${zoneHeatSetpoint}"
     updateMaster()
     setDelta()
-}
+   }
 
 def setTstatCSP(evt) {
 	infolog "Running setTstatCSP"
@@ -172,65 +151,38 @@ def setTstatCSP(evt) {
 	debuglog "Cold setpoint set to ${zoneColdSetpoint}"
     updateMaster()
     setDelta()
-}
+   }
 
-//*
 def MainTstatStateChange(Mode) {
     debuglog "Master Sent thrermostat mode ${Mode}"
     state.HVACmode=Mode
-}
-//*/
+   }
 
-/*
-def MainTstatStateChange() {
-    state.HVACmode = parent.HVACmode()
-}
-*/
+def setDelta(){
+    if (state.HVACmode=="HEAT") state.delta = (state.currentSetPoint - state.currentTemperature).toFloat().round(1)
+    else if (state.HVACmode=="COOL") state.delta = (state.currentTemperature - state.currentSetPoint).toFloat().round(1)
+    else state.delta = 0.0
+    debuglog "Current Delta ${state.delta}"
+   }
 
 // SEND CHANGES TO PARENT
 def updateMaster(){
     infolog "Sending Room Stats to Master"
-    //state.delta = ()
 	Map ChildMap = [:]
+    Room = app.label
+    debuglog Room
     ChildMap.room = app.label
     ChildMap.setpoint = state.currentSetPoint
     ChildMap.currentTemperature = state.currentTemperature
-    //ChildMap.currentHumidity = state.currentHumidity
-    ChildMap.roomVentArea = state.roomVentArea
-    //ChildMap.occupied = state.occupied
-    //ChildMap.ventLevel = state.ventLevel
-    ChildMap.delta = state.delta
+    ChildMap.currentHumidity = state.currentHumidity
+    ChildMap.area = state.area
+    ChildMap.occupied = state.occupied
+    ChildMap.ventLevel = state.ventLevel
+    ChildMap.delta = state.delta   
     debuglog ChildMap
-    parent.SetChildStats(ChildMap)
+    parent.SetChildStats(ChildMap)   
 	infolog "Updated Master"
 }
-
-def setDelta(){
-    if (state.HVACmode=="HEAT") state.delta = (state.currentSetPoint - state.currentTemperature).toFloat()
-    else if (state.HVACmode=="COOL") state.delta = (state.currentTemperature - state.currentSetPoint).toFloat()
-    else state.delta = 0
-        
-    if (state.delta < 0) state.delta = 0
-    debuglog "Current Delta ${state.delta}"
-}
-
-         
-        
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
 // Debug/Logging
 def debuglog(statement){   
