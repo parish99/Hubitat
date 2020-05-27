@@ -18,12 +18,13 @@ def pageConfig(){
 
       section("HVAC Setup"){
          input name : "tStat", type : "capability.thermostat", title: "Main Household thermostat", required: true
-         input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
+         //input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
          input name : "blowerRun", type : "capability.contactSensor", title: "Blower Running Input", required: false
-         input name : "staticPres", type : "capability.contactSensor", title: "Static Pressure Overpressure Swtich", required: false
-         input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 300, submitOnChange: true
-         input "staticValue", "number", title: "Enter The Total in² of static vents:", defaultValue: 0, submitOnChange: true
-         input "maxDelta", "number", title: "Enter The Max Room Delta:", defaultValue: 3, submitOnChange: true
+         input name : "overPressure", type : "capability.contactSensor", title: "Static Pressure Overpressure Switch", required: false
+         input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 250, submitOnChange: true
+         input "staticValue", "number", title: "Enter The Total in² of Static Vents:", defaultValue: 0, submitOnChange: true
+         input "maxDelta", "number", title: "Enter The Max Room Delta (Degrees):", defaultValue: 3, submitOnChange: true
+         input "refresh", "number", title: "Enter The Update Interval (Seconds):", defaultValue: 60, submitOnChange: true
       }
         
       section("Rooms"){
@@ -51,41 +52,52 @@ def updated(){
    }
    
 def initialize(){
-   infolog "Initializing"
-   subscribe(tStat, "thermostatMode", setTstatMode)
-	debuglog "Getting local virtual Thermostat thermostatMode" 
+    state.clear()
+    infolog "Initializing"
+    subscribe(tStat, "thermostatMode", setTstatMode)
+    debuglog "Getting local virtual Thermostat thermostatMode" 
 	state.thermostatMode = tStat.currentValue("thermostatMode").toUpperCase()
-   debuglog "Getting Thermostat running State" 
-   subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)  
-   state.mainState = tStat.currentValue("thermostatOperatingState").toUpperCase()
-   //state.mainState = state.mainState ?: getMainTstatState()
+    debuglog "Main TstatState : ${state.thermostatMode}"    
+    debuglog "Getting Thermostat running State" 
+    subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)  
+    state.operState = tStat.currentValue("thermostatOperatingState").toUpperCase()
+    debuglog "Main TstatState : ${state.operState}"
+   
+   if (blowerRun) {
    subscribe(blowerRun, "contact", blowerHandler)
    debuglog "Getting Blower State "
-   state.blowerRun = blowerRun.currentValue("contact")
+   state.blowerRun = blowerRun.currentValue("contact").toUpperCase()
+   }
+   
+   if (staticPres) {
+   subscribe(staticPres, "contact", pressureHandler)
+   debuglog "Getting Static Pressure State "
+   state.overPressure = overPressure.currentValue("contact").toUpperCase()
+   }
+   
    debuglog "There are ${childApps.size()} installed child apps"
-   //state.remove("roomMap")
-   //state.remove("roomData")
    state.roomMap = [:]
-   state.roomData = [:]
-   //state.roomData.area=0
-   //state.areaTotal=0
-   //state.deltaTotal=0
-    
-   //state.roomMap.room.area=0
-   //state.roomMap.room.delta=0
-    
+
    childApps.each {child ->
       debuglog "Child app: ${child.label}"
-      //state.childTemps= [:]
-      //state.childSetpoints= [:]
+      state.roomMap[child.label]=[:]
       state.childVentSize= [:]
       state.childDelta= [:]
       state.childVentSP= [:]
-      //debuglog "Remove State rooms"
-      //state.remove("rooms")
-      //state.remove("childVentOpenings")
       }  
-   }
+    
+   infolog "Getting Child Values"
+   childApps.each {child ->
+       state.roomMap[child.label].area=child.getArea()
+       state.roomMap[child.label].delta=child.getDelta()
+       state.childVentSize[child.label]=state.roomMap[child.label].area
+       state.childDelta[child.label]=state.roomMap[child.label].delta
+       debuglog "Initial Room Data:${[child.label]}:${state.roomMap[child.label]}"
+   }   
+    childVentCalc()   
+    update()    
+    
+    } //end init
 
 def setTstatMode(evt){
 	infolog "Running setTstatMode"
@@ -107,53 +119,46 @@ def getMainTstatState(){
 def OperatingStateHandler(evt){
 	debuglog "OperatingStateHandler event : ${evt}"
 	def newTstatState = evt.value.toUpperCase()
-      if (newTstatState != state.mainState){
-         state.mainState = newTstatState
-         //SendTstatStateChange()
-         }
+      if (newTstatState != state.operState) state.operState = newTstatState
    }
 
 def blowerHandler(evt){
     debuglog "Blower Run event : ${evt}"
-    state.blowerRun = evt.value
+    state.blowerRun = evt.value.toUpperCase()
     return state.blowerRun
+   }
+   
+def pressureHandler(evt){
+    debuglog "Overpressure Run event : ${evt}"
+    state.overPressure = evt.value.toUpperCase()
+    return state.overPressure
    }
 
 // Called from child during init
 def HVACmode(){
-    //return state.blowerRun
     return state.thermostatMode
    }
 
 // Called from child when there is an update for the parent
 def SetChildStats(RoomStat){
-   debuglog RoomStat
+   infolog "Recieved Child Data : ${RoomStat}"
    if(RoomStat.delta==0) RoomStat.delta=0.1 //avoids a bunch of divide by zero crap
-   state.roomData.area=RoomStat.area
-   state.roomData.delta=RoomStat.delta
-   debuglog RoomData
-   state.roomMap[RoomStat.room]=state.roomData
+   state.roomMap[RoomStat.room].area=(RoomStat.area)
+   state.roomMap[RoomStat.room].delta=(RoomStat.delta)
    state.childVentSize[RoomStat.room]= RoomStat.area
    state.childDelta[RoomStat.room]= RoomStat.delta
-   //debuglog state.roomMap
-   //state.roomMap[RoomStat.room] = RoomStat.delta
-   //debuglog "oiyiuyiuyu ${state.roomMap}"
-   //state.roomMap[RoomStat.room].delta = RoomStat.delta
-   //state.childTemps[RoomStat.room]= RoomStat.currentTemperature
-   //state.childSetpoints[RoomStat.room]= RoomStat.setpoint
-   //debuglog "Current Room Temperature ${state.childTemps}"
-   //debuglog "Current Room Setpoint ${state.childSetpoints}"
-   //debuglog "Current Open Vent Area ${state.childVentOpenings}"
-   debuglog "roomMap values ${state.roomMap[RoomStat.room]}"
-   debuglog "roomMap values all ${state.roomMap}"
-   AddTotalVentArea()
-   debuglog "added area"
+   infolog "Updated Room ${[RoomStat.room]}"
+   debuglog "Set Room Data:${[RoomStat.room]}:${state.roomMap[RoomStat.room]}"
+   childVentCalc()
    }
 
-// Do some calculations
-def AddTotalVentArea(){
+
+// ================ Do a Bunch of Math ================
+def childVentCalc(){
+    debuglog "Running Vent Calculations ${state.roomMap}"
    state.areaTotal=0
    state.deltaTotal=0
+   state.stage=1
    state.roomMap.each{k, v-> 
       state.areaTotal = state.areaTotal + v.area
       state.deltaTotal = state.deltaTotal + v.delta
@@ -176,18 +181,17 @@ def AddTotalVentArea(){
    state.initRem = targetArea - state.initAreaSum
     
 //Get the active area
-   state.actAreaSum=0
+   tempSum=0
    state.roomMap.each{k, v->  
       if (v.delta>0) v.actArea = v.area  
       else v.actArea = 0
-      state.actAreaSum = state.actAreaSum + v.actArea
+      tempSum = tempSum + v.actArea
       }
+    state.actAreaSum = tempSum
 
-
-//******  initAreaSum is greater than or Equal to the Target
-   state.stage=0
+//***********  initAreaSum is greater than or Equal to the Target
     if (state.initAreaSum >= targetArea) {
-           state.stage=1
+           state.stage=100
            state.actDeltaSum=0
            state.roomMap.each{k, v->  
                if(v.delta>0) v.actDelta = v.newDelta
@@ -210,7 +214,6 @@ def AddTotalVentArea(){
            }
     
     //Start the reduction loop.
-        //state.loopSum=state.initAreaSum
         state.loopRem=state.initRem
         state.roomMap.each{k, v->  
                v.loopArea = v.initArea
@@ -230,14 +233,14 @@ def AddTotalVentArea(){
         state.count++
       } 
       state.roomMap.each{k, v->    
-          state.childVentSP[k]= (v.loopArea).toInteger()
+          state.childVentSP[k]= Math.round(v.loopArea)//.toInteger()
       } 
-       state.stage=10
+       state.stage=199
    }   //end the if block 
       
-    //initAreaSum is Less than Target and actAreaSum is Greater or Equal to Target
+//************ initAreaSum is Less than Target and actAreaSum is Greater or Equal to Target
    if (state.initAreaSum < targetArea && state.actAreaSum > targetArea) {
-        state.stage=2   
+        state.stage=200   
        state.actDeltaSum=0
            state.roomMap.each{k, v->  
                if(v.delta>0) v.actDelta = v.newDelta
@@ -248,7 +251,7 @@ def AddTotalVentArea(){
         
             state.roomMap.each{k, v->  
                if(v.actDelta>0) v.prodScale = (1/state.actDeltaSum*v.actDelta).toFloat()
-               else v.actDelta = 0
+               else v.prodScale = 0
            }
     
     //Start the reduction loop
@@ -258,7 +261,7 @@ def AddTotalVentArea(){
         }
     
         state.count = 0
-    while (state.loopRem > 0 && state.count <100) {
+    while (state.loopRem > 0.1 && state.count <500) {
            
             state.loopSum=0
             state.roomMap.each{k, v->  
@@ -271,22 +274,90 @@ def AddTotalVentArea(){
         state.count++
       }  
           state.roomMap.each{k, v->    
-          state.childVentSP[k]= (v.loopArea).toInteger()
+          state.childVentSP[k]= Math.round(v.loopArea)//.toInteger()
           }
-    state.stage=20
-    //end stage two
+    state.stage=299
+    
    }   //end the if block for stage 2       
-    
-    
-    //initAreaSum is Less than Target and actAreaSum is Less than Target (use inactive vents)
-    
+     
+//************** initAreaSum is Less than Target and actAreaSum is Less than Target (use inactive vents)
+   if (state.actAreaSum < targetArea) {
+         state.stage=300   
+         state.actDeltaSum=0
+         state.roomMap.each{k, v->  
+            if(v.delta>0) v.actDelta = 0
+            else v.actDelta = (v.newDelta *(-1))
+               
+         state.actDeltaSum = state.actDeltaSum + v.actDelta
+         }
+         
+         state.deltaProdSum = 0
+         state.roomMap.each{k, v->  
+            if(v.actDelta!=0) v.deltaProd = (1/state.actDeltaSum/v.actDelta).toFloat()
+            else v.deltaProd = 0
         
+            state.deltaProdSum = state.deltaProdSum + v.deltaProd
+            }
     
+         state.roomMap.each{k, v->  
+            if(v.deltaProd>0) v.prodScale = (1/state.deltaProdSum*v.deltaProd).toFloat()
+            else v.prodScale = 0
+            }      
+            
+    //Start the reduction loop
+        state.loopRem=(targetArea-state.actAreaSum)
+        state.roomMap.each{k, v->  
+               v.loopArea = v.initArea
+        }
+    
+        state.count = 0
+    while (state.loopRem > 0.1 && state.count <500) {
+           
+            state.loopSum=0
+            state.roomMap.each{k, v->  
+               v.reduce = (state.loopRem*v.prodScale).toFloat()
+               if(v.reduce + v.loopArea > v.area) v.reduce = (v.area - v.loopArea).toFloat()
+               if (v.actDelta!=0) v.loopArea = (v.loopArea+v.reduce).toFloat()
+               else v.loopArea = v.area
+               state.loopSum = (state.loopSum+v.loopArea) .toFloat()         
+            }
+        state.loopRem = (targetArea -state.loopSum) .toFloat()
+        state.count++
+      }  
+          state.roomMap.each{k, v->    
+          state.childVentSP[k]= Math.round(v.loopArea)//.toInteger()
+          }
+    state.stage=399
+    
+   }   //end the if block for stage 3    
+
+   debuglog "Ran Vent Calculations ${state.roomMap}"   
+   debuglog "Child Vent Map ${state.childVentSP}"  
    
 }// end calc
 
 
+def sendVentUpdate() {   
+    childApps.each {child ->
+        state.childVentSP.each{room-> 
+            if (child.label==room.key){
+                child.setArea(room.value)
+                debuglog "Sent New Vent Value to: ${child.label}:${room.value}"
+            }
+        }  
+    } 
+    infolog "Updated Child Vent Target Area: ${state.childVentSP}"
+    debuglog "****** Update Children Vents (Stage ${state.stage})******"
+    state.stage=0
+}
 
+def update(){
+    if (state.operState=="COOLING" && state.stage>99) sendVentUpdate()
+    else if (state.operState=="HEATING" && state.stage>99) sendVentUpdate()
+    else if (state.operState=="FAN ONLY" && state.stage>99) sendVentUpdate()
+    else if (state.blowerRun=="CLOSED" && state.stage>99) sendVentUpdate()
+    runIn(refresh,update)
+}
 
 //    ========== Debug/Logging ==========
 def debuglog(statement){   
