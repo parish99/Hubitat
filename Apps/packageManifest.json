@@ -5,7 +5,7 @@
 	"version": "1.0.0",
 	"dateReleased": "2020-05-26",
 	"releaseNotes": "Initial release version",
-	"documentationLink": "https://github.com/parish99/Hubitat/README.md",
+	"documentationLink": "https://github.com/parish99/Hubitat/blob/master/README.md",
 	"communityLink": "https://community.hubitat.com",
 	"apps" : [
 		{
@@ -25,10 +25,10 @@
   	"drivers" : [
 		{
 			"id": "1",
-			"name": "Virtual Room",
+			"name": "VirtualRoom",
 			"namespace": "Parish",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/VirtualRoom.groovy",
-			"required": true
+			"required": false
 		}
 		]
 }
