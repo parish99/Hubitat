@@ -10,30 +10,25 @@
 	"apps" : [
 		{
 			"id" : "1",
-			"name": "Room Master",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/RoomMaster.groovy",
-			
+			"name": "RoomMaster",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/RoomMaster.groovy",			
 			"required": true
 		}
-    {
-    	"id" : "1",
+    		{
+    			"id" : "1",
 			"name": "Room",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Room.groovy",
-      "betaLocation": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Room.groovy",
-			"oauth": false
 			"required": true
-    }
-	]
+    		}
+		]
   
   	"drivers" : [
 		{
 			"id": "1",
 			"name": "Virtual Room",
 			"namespace": "Parish",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/apps/VirtualRoom.groovy",
-      "betaLocation": "https://raw.githubusercontent.com/parish99/Hubitat/master/apps/VirtualRoom.groovy",
-			"oauth": false
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/VirtualRoom.groovy",
 			"required": true
 		}
-	]
+		]
 }
