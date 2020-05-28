@@ -10,7 +10,7 @@ definition(
 	iconX3Url	: ""
    )
 
-preferences {page(name: "pageConfig")} 
+preferences {page(name: "pageConfig")} ////
 
 def pageConfig(){
 	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) 
