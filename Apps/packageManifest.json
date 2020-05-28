@@ -2,7 +2,7 @@
 	"packageName": "Room Master",
 	"minimumHEVersion": "2.1.9",
 	"author": "Jason Parish",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"dateReleased": "2020-05-26",
 	"releaseNotes": "Initial release version",
 	"documentationLink": "https://github.com/parish99/Hubitat/blob/master/README.md",
