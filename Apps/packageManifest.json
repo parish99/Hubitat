@@ -1,5 +1,5 @@
 {
-	"packageName": "RoomMaster",
+	"packageName": "Room Master",
 	"minimumHEVersion": "2.1.9",
 	"author": "Jason Parish",
 	"version": "1.0.0",
@@ -9,26 +9,28 @@
 	"communityLink": "https://community.hubitat.com",
 	"apps" : [
 		{
-			"id" : "1",
+			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "RoomMaster",
+			"namespace": "Parish",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/RoomMaster.groovy",			
 			"required": true
-		}
+		},
     		{
-    			"id" : "1",
+    			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "Room",
+			"namespace": "Parish",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Room.groovy",
 			"required": true
     		}
-		]
+	],
   
   	"drivers" : [
 		{
-			"id": "1",
+			"id": "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "VirtualRoom",
 			"namespace": "Parish",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/VirtualRoom.groovy",
 			"required": false
 		}
-		]
+	]
 }
