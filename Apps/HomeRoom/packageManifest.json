@@ -1,8 +1,8 @@
 {
-	"packageName": "Room Master",
+	"packageName": "Home Room",
 	"minimumHEVersion": "2.1.9",
 	"author": "Jason Parish",
-	"version": "1.0.2",
+	"version": "1.0.0",
 	"dateReleased": "2020-05-28",
 	"releaseNotes": "Initial release version",
 	"documentationLink": "https://github.com/parish99/Hubitat/blob/master/README.md",
@@ -10,16 +10,16 @@
 	"apps" : [
 		{
 			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
-			"name": "RoomMaster",
+			"name": "HomeRoom",
 			"namespace": "Parish",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/RoomMaster.groovy",			
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/HomeRoom.groovy",			
 			"required": true
 		},
     		{
     			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "Room",
 			"namespace": "Parish",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Room.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/Room.groovy",
 			"required": true
     		}
 	],
@@ -29,7 +29,7 @@
 			"id": "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "VirtualRoom",
 			"namespace": "Parish",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/VirtualRoom.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/VirtualRoom.groovy",
 			"required": false
 		}
 	]
