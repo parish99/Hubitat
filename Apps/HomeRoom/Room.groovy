@@ -1,10 +1,10 @@
 definition(
     name: "Room",
-    namespace: "Parish",
-    author: "Parish",
+    namespace: "Gunz",
+    author: "Jason Parish",
     description: "Room application for 'HomeRoom', do not install directly.",
     category: "My Apps",
-    parent: "Parish:HomeRoom",
+    parent: "Gunz:HomeRoom",
     iconUrl: "",
     iconX2Url: "",
 	iconX3Url	: ""
@@ -115,7 +115,7 @@ def initialize(){
 
 def createRoomDevice() {
     def roomDevice = getChildDevice("vRoom_${app.id}")
-	if(!roomDevice) roomDevice = addChildDevice("Parish", "RoomTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
+	if(!roomDevice) roomDevice = addChildDevice("Gunz", "RoomTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
 }
 
 // EVENT HANDLERS
