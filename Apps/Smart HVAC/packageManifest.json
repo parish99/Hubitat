@@ -1,5 +1,5 @@
 {
-	"packageName": "Home Room",
+	"packageName": "Smart HVAC",
 	"minimumHEVersion": "2.1.9",
 	"author": "Jason Parish",
 	"version": "1.0.0",
@@ -10,16 +10,16 @@
 	"apps" : [
 		{
 			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
-			"name": "HomeRoom",
+			"name": "SmartHVAC",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/HomeRoom.groovy",			
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart HVAC/SmartHVAC.groovy",			
 			"required": true
 		},
     		{
     			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "Room",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/Room.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart HVAC/Room.groovy",
 			"required": true
     		}
 	],
@@ -29,7 +29,7 @@
 			"id": "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "RoomTile",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/RoomTile.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart HVAC/RoomTile.groovy",
 			"required": false
 		}
 	]
