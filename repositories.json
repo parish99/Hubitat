@@ -4,7 +4,7 @@
    "payPalUrl": "https://paypal.me/parish99",
    "packages": [
       {
-   		"name": "Home Room",
+   		"name": "Smart HVAC",
    		"category": "Control",
    		"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/packageManifest.json",
    		"description": "Controls Rooms and HVAC Smart Vents to Maintaine a Set Percentage of Open Vents in the Home."
