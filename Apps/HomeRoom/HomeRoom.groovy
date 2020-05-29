@@ -1,11 +1,11 @@
 
  definition(
    name		: "HomeRoom",
-   namespace	: "Parish",
-   author		: "Parish",
+   namespace	: "Gunz",
+   author	: "Parish",
    description	: "Room Manager",
    category	: "My Apps",
-   iconUrl		: "",
+   iconUrl	: "",
    iconX2Url	: "",
    iconX3Url	: ""
    )
@@ -30,7 +30,7 @@ def pageConfig(){
       section("Rooms"){
 		if (installed){
          section("Rooms"){
-            app(name: "childRooms", appName: "Room", namespace: "Parish", title: "Create New Room...", multiple: true)
+            app(name: "childRooms", appName: "Room", namespace: "Gunz", title: "Create New Room...", multiple: true)
          }
       }	
       }
