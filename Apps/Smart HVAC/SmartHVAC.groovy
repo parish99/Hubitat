@@ -2,7 +2,7 @@
  definition(
    name		: "SmartHVAC",
    namespace	: "Gunz",
-   author	: "Parish",
+   author	: "Jason Parish",
    description	: "Room Manager",
    category	: "My Apps",
    iconUrl	: "",
@@ -11,7 +11,7 @@
    )
 
 
-preferences {page(name: "pageConfig")}//new
+preferences {page(name: "pageConfig")}
 
 def pageConfig(){
    dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0){
