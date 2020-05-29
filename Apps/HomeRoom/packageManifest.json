@@ -11,14 +11,14 @@
 		{
 			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "HomeRoom",
-			"namespace": "Parish",
+			"namespace": "Gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/HomeRoom.groovy",			
 			"required": true
 		},
     		{
     			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "Room",
-			"namespace": "Parish",
+			"namespace": "Gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/Room.groovy",
 			"required": true
     		}
@@ -27,9 +27,9 @@
   	"drivers" : [
 		{
 			"id": "cc4da96d205e7292e64e1ee725bc79f3747f2120",
-			"name": "VirtualRoom",
-			"namespace": "Parish",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/VirtualRoom.groovy",
+			"name": "RoomTile",
+			"namespace": "Gunz",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/RoomTile.groovy",
 			"required": false
 		}
 	]
