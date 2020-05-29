@@ -1,5 +1,5 @@
 metadata {
-    definition (name: "RoomTile", namespace: "Parish", author: "Jason Parish") {
+    definition (name: "RoomTile", namespace: "Gunz", author: "Jason Parish") {
         //Capabilities 
         capability "SwitchLevel"
         capability "Temperature Measurement"
