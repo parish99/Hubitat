@@ -1,6 +1,6 @@
 
  definition(
-   name		: "HomeRoom",
+   name		: "SmartHVAC",
    namespace	: "Gunz",
    author	: "Parish",
    description	: "Room Manager",
