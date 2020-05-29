@@ -1,6 +1,6 @@
 
  definition(
-   name		: "RoomMaster",
+   name		: "HomeRoom",
    namespace	: "Parish",
    author		: "Parish",
    description	: "Room Manager",
