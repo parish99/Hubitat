@@ -6,7 +6,7 @@
       {
    		"name": "Smart HVAC",
    		"category": "Control",
-   		"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HomeRoom/packageManifest.json",
+   		"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/packageManifest.json",
    		"description": "Controls Rooms and HVAC Smart Vents to Maintaine a Set Percentage of Open Vents in the Home."
    	}
 
