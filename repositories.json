@@ -1,0 +1,14 @@
+{
+   "author": "Jason Parish",
+   "gitHubUrl": "https://github.com/parish99/Hubitat",
+   "payPalUrl": "https://paypal.me/parish99",
+   "packages": [
+      {
+   		"name": "Home Room",
+   		"category": "Control",
+   		"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Home%20Room/packageManifest.json",
+   		"description": "Controls Rooms and HVAC Smart Vents to Maintaine a Set Percentage of Open Vents in the Home."
+   	}
+
+   ]
+}
