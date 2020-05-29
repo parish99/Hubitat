@@ -4,7 +4,7 @@ definition(
     author: "Jason Parish",
     description: "Room application for 'HomeRoom', do not install directly.",
     category: "My Apps",
-    parent: "Gunz:HomeRoom",
+    parent: "Gunz:SmartHVAC",
     iconUrl: "",
     iconX2Url: "",
 	iconX3Url	: ""
