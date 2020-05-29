@@ -12,14 +12,14 @@
 			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "SmartHVAC",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart HVAC/SmartHVAC.groovy",			
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/SmartHVAC.groovy",			
 			"required": true
 		},
     		{
     			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "Room",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart HVAC/Room.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/Room.groovy",
 			"required": true
     		}
 	],
@@ -29,7 +29,7 @@
 			"id": "cc4da96d205e7292e64e1ee725bc79f3747f2120",
 			"name": "RoomTile",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart HVAC/RoomTile.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/RoomTile.groovy",
 			"required": false
 		}
 	]
