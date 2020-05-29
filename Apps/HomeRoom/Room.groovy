@@ -2,9 +2,9 @@ definition(
     name: "Room",
     namespace: "Parish",
     author: "Parish",
-    description: "Room application for 'RoomMaster', do not install directly.",
+    description: "Room application for 'HomeRoom', do not install directly.",
     category: "My Apps",
-    parent: "Parish:RoomMaster",
+    parent: "Parish:HomeRoom",
     iconUrl: "",
     iconX2Url: "",
 	iconX3Url	: ""
@@ -37,8 +37,8 @@ def pageConfig(){
           input(name: "logLevel" ,title: "IDE logging level" ,multiple: false ,required: true ,type: "enum" ,options: getLogLevels() ,submitOnChange: false ,defaultValue: "0")  
 	  } 
       
-      section("Virtual Room"){
-          input(name: "vRoom" ,title: "Create A Virtual Device?" ,multiple: false ,required: false ,type: "bool" ,submitOnChange: true, defaultValue : false)  
+      section("Room Tile"){
+          input(name: "vRoom" ,title: "Create A Room Tile Device?" ,multiple: false ,required: false ,type: "bool" ,submitOnChange: true, defaultValue : false)  
 	  } 
 
 	}
@@ -115,7 +115,7 @@ def initialize(){
 
 def createRoomDevice() {
     def roomDevice = getChildDevice("vRoom_${app.id}")
-	if(!roomDevice) roomDevice = addChildDevice("Parish", "Virtual Room", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
+	if(!roomDevice) roomDevice = addChildDevice("Parish", "RoomTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
 }
 
 // EVENT HANDLERS
