@@ -1,5 +1,5 @@
 definition(
-    name: "Room",
+    name: "SmartRoom",
     namespace: "Gunz",
     author: "Jason Parish",
     description: "Room application for 'SmartHVAC', do not install directly.",
@@ -115,7 +115,7 @@ def initialize(){
 
 def createRoomDevice() {
     def roomDevice = getChildDevice("vRoom_${app.id}")
-	if(!roomDevice) roomDevice = addChildDevice("Gunz", "RoomTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
+	if(!roomDevice) roomDevice = addChildDevice("Gunz", "SmartTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
 }
 
 // EVENT HANDLERS
