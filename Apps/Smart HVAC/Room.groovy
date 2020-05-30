@@ -2,7 +2,7 @@ definition(
     name: "Room",
     namespace: "Gunz",
     author: "Jason Parish",
-    description: "Room application for 'HomeRoom', do not install directly.",
+    description: "Room application for 'SmartHVAC', do not install directly.",
     category: "My Apps",
     parent: "Gunz:SmartHVAC",
     iconUrl: "",
