@@ -17,9 +17,9 @@
 		},
     		{
     			"id" : "8A11F2B2-3EFD-43DB-8FFF-AE10B3612FC5",
-			"name": "Room",
+			"name": "SmartRoom",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/Room.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/SmartRoom.groovy",
 			"required": true
     		}
 	],
@@ -27,9 +27,9 @@
   	"drivers" : [
 		{
 			"id": "F8B7F71D-4D80-40AE-89CF-65AAECA7A569",
-			"name": "RoomTile",
+			"name": "SmartTile",
 			"namespace": "Gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/RoomTile.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/SmartTile.groovy",
 			"required": false
 		}
 	]
