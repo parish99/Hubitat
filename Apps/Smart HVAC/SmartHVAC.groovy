@@ -15,8 +15,10 @@ preferences {page(name: "pageConfig")}//
 
 def pageConfig(){
    dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0){
-
-      section("HVAC Setup"){
+	   
+	section("Smart HVAC") {input "Pause", "bool", title: "Pause control for this automation.", required: true, defaultValue: false, submitOnChange: true}
+	   
+      	section("HVAC Setup"){
          input name : "tStat", type : "capability.thermostat", title: "Main Household thermostat", required: true
          //input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
          input name : "blowerRun", type : "capability.contactSensor", title: "Blower Running Input", required: false
@@ -30,7 +32,7 @@ def pageConfig(){
       section("Rooms"){
 		if (installed){
          section("Rooms"){
-            app(name: "childRooms", appName: "Room", namespace: "Gunz", title: "Create New Room...", multiple: true)
+            app(name: "childRooms", appName: "SmartRoom", namespace: "Gunz", title: "Create New Room...", multiple: true)
          }
       }	
       }
