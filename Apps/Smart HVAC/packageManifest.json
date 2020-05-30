@@ -9,14 +9,14 @@
 	"communityLink": "https://community.hubitat.com",
 	"apps" : [
 		{
-			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
+			"id" : "6331014E-41A8-433E-91D3-4C15A879B0F5",
 			"name": "SmartHVAC",
 			"namespace": "Gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/SmartHVAC.groovy",			
 			"required": true
 		},
     		{
-    			"id" : "cc4da96d205e7292e64e1ee725bc79f3747f2120",
+    			"id" : "8A11F2B2-3EFD-43DB-8FFF-AE10B3612FC5",
 			"name": "Room",
 			"namespace": "Gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/Room.groovy",
@@ -26,7 +26,7 @@
   
   	"drivers" : [
 		{
-			"id": "cc4da96d205e7292e64e1ee725bc79f3747f2120",
+			"id": "F8B7F71D-4D80-40AE-89CF-65AAECA7A569",
 			"name": "RoomTile",
 			"namespace": "Gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/RoomTile.groovy",
