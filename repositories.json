@@ -4,9 +4,9 @@
    "payPalUrl": "https://paypal.me/parish99",
    "packages": [
       {
-   		"name": "SmartHVAC",
+   		"name": "HVAC-Pro",
    		"category": "Control",
-   		"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/Smart%20HVAC/packageManifest.json",
+   		"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/packageManifest.json",
    		"description": "Controls Rooms and HVAC Smart Vents to Maintaine a Set Percentage of Open Vents in the Home."
    	}
 
