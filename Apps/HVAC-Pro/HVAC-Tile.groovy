@@ -1,5 +1,5 @@
 metadata {
-    definition (name: "SmartTile", namespace: "gunz", author: "Jason Parish") {
+    definition (name: "HVAC-Tile", namespace: "gunz", author: "Jason Parish") {
         //Capabilities 
         capability "SwitchLevel"
         capability "Temperature Measurement"
