@@ -1,10 +1,10 @@
 definition(
-    name: "SmartRoom",
+    name: "HVAC-Room",
     namespace: "gunz",
     author: "Jason Parish",
-    description: "Room application for 'SmartHVAC', do not install directly.",
+    description: "Room application for 'HVAC-Pro', do not install directly.",
     category: "My Apps",
-    parent: "gunz:SmartHVAC",
+    parent: "gunz:HVAC-Pro",
     iconUrl: "",
     iconX2Url: "",
 	iconX3Url	: ""
