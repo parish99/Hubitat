@@ -1,7 +1,7 @@
 
  definition(
    name		: "SmartHVAC",
-   namespace	: "Gunz",
+   namespace	: "gunz",
    author	: "Jason Parish",
    description	: "Room Manager",
    category	: "My Apps",
@@ -32,7 +32,7 @@ def pageConfig(){
       section("Rooms"){
 		if (installed){
          section("Rooms"){
-            app(name: "childRooms", appName: "SmartRoom", namespace: "Gunz", title: "Create New Room...", multiple: true)
+            app(name: "childRooms", appName: "SmartRoom", namespace: "gunz", title: "Create New Room...", multiple: true)
          }
       }	
       }
