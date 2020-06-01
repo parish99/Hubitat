@@ -1,10 +1,10 @@
 definition(
     name: "SmartRoom",
-    namespace: "Gunz",
+    namespace: "gunz",
     author: "Jason Parish",
     description: "Room application for 'SmartHVAC', do not install directly.",
     category: "My Apps",
-    parent: "Gunz:SmartHVAC",
+    parent: "gunz:SmartHVAC",
     iconUrl: "",
     iconX2Url: "",
 	iconX3Url	: ""
@@ -115,7 +115,7 @@ def initialize(){
 
 def createRoomDevice() {
     def roomDevice = getChildDevice("vRoom_${app.id}")
-	if(!roomDevice) roomDevice = addChildDevice("Gunz", "SmartTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
+	if(!roomDevice) roomDevice = addChildDevice("gunz", "SmartTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
 }
 
 // EVENT HANDLERS
