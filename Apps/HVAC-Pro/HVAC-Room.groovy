@@ -10,7 +10,7 @@ definition(
 	iconX3Url	: ""
    )
 
-preferences {page(name: "pageConfig")} ////
+preferences {page(name: "pageConfig")}
 
 def pageConfig(){
 	dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0) 
@@ -18,14 +18,20 @@ def pageConfig(){
 
       section("Room Name") {label title: "Enter a name for this room", required: false}    
         
-      section("Pause") {input "PauseRoom", "bool", title: "Pause control for this room.", required: true, defaultValue: false, submitOnChange: true}
+      section("Room Control"){
+          input "PauseRoom", "bool", title: "Pause control.", required: false, defaultValue: false, submitOnChange: true ,width: 3
+          input "infoEnable", "bool", title: "Enable Info Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
+          input "debugEnable", "bool", title: "Enable Debug Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
+      }
+       
+      section("Room Thermostat Mode Control"){input "tstatControl", "bool", title: "Allow Main Thermostat to Control Room Thermostat Mode.", required: false, defaultValue: true, submitOnChange: true}
         
       section("Devices"){
-         input "vStat", "capability.thermostat", title: "Zone Virtual Thermostat for setting zone setpoints", required: true
-         input "vents", "capability.switchLevel", title: "Zone Vent",multiple: true, required: true
-         input "tempSensor", "capability.temperatureMeasurement", title: "Zone Temperature Sensor", multiple: false, required: true
-         input "humSensor", "capability.relativeHumidityMeasurement", title: "Zone Humidity Sensor", multiple: false, required: false
-         input "luxSensor", "capability.illuminanceMeasurement", title: "Zone Light Sensor", multiple: false, required: false
+         input "vStat", "capability.thermostat", title: "Room Thermostat used for setpoints", required: true
+         input "vents", "capability.switchLevel", title: "Room Vents",multiple: true, required: true
+         input "tempSensor", "capability.temperatureMeasurement", title: "Room Temperature Sensor", multiple: false, required: true
+         input "humSensor", "capability.relativeHumidityMeasurement", title: "Room Humidity Sensor", multiple: false, required: false
+         input "luxSensor", "capability.illuminanceMeasurement", title: "Room Light Sensor", multiple: false, required: false
          input "fan", "capability.fanControl", title: "Room Fan", multiple: false, required: false
          input "motion", "capability.motionSensor", title: "Room Motion Sensor", multiple: false, required: false
       }
@@ -33,13 +39,7 @@ def pageConfig(){
          input name: "Area", title: "Room Vent Size in²" ,multiple: false ,required: true ,type: "number" ,defaultValue: "38"      
          }
 
-      section("Logging"){
-          input(name: "logLevel" ,title: "IDE logging level" ,multiple: false ,required: true ,type: "enum" ,options: getLogLevels() ,submitOnChange: false ,defaultValue: "0")  
-	  } 
-      
-      section("Room Tile"){
-          input(name: "vRoom" ,title: "Create A Room Tile Device?" ,multiple: false ,required: false ,type: "bool" ,submitOnChange: true, defaultValue : false)  
-	  } 
+      section("Room Tile"){input(name: "vRoom" ,title: "Create A Room Tile Device?" ,multiple:false ,required:false ,type: "bool" ,submitOnChange:true, defaultValue:false)} 
 
 	}
 }
@@ -74,13 +74,13 @@ def initialize(){
     if(humSensor){
         debuglog "Subscribe to humidity"
         subscribe(humSensor, "humidity", humHandler)
-        debuglog "Getting current Zone Humidity" 
+        debuglog "Getting current Room Humidity" 
         state.currentHumidity = humSensor.currentValue("humidity")  
     }
     if(motion){
         debuglog "Subscribe to motion"
         subscribe(motion, "motion.active", motionAHandler)
-        debuglog "Getting current Zone Motion" 
+        debuglog "Getting current Room Motion" 
         state.Motion = motion.currentValue("motion")
         state.occupied = motion.currentValue("motion")
     }
@@ -96,6 +96,7 @@ def initialize(){
         debuglog "Getting current fan speed" 
         state.fanSpeed = speed.currentValue("speed")
     }
+    
     debuglog "Getting House Thermostat State"
     state.HVACmode = parent.HVACmode() 
     debuglog "Subscribe to Room Thermostat"
@@ -115,7 +116,7 @@ def initialize(){
 
 def createRoomDevice() {
     def roomDevice = getChildDevice("vRoom_${app.id}")
-	if(!roomDevice) roomDevice = addChildDevice("gunz", "SmartTile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
+	if(!roomDevice) roomDevice = addChildDevice("gunz", "HVAC-Tile", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
 }
 
 // EVENT HANDLERS
@@ -192,15 +193,18 @@ def setDelta(){
 def getArea(){return(state.area)}
 def getDelta(){return(state.delta)}
 def MainTstatStateChange(Mode) {
+    if(tstatControl){
     debuglog "Master Sent thrermostat mode ${Mode}"
     state.HVACmode=Mode
     vStat.setThermostatMode(Mode.toLowerCase())
     setDelta()
     updateMaster()
+    }
 }
 def setArea(newArea){
-    state.ventSetPoint=(100/state.area*newArea).toInteger()
-    infolog "New Setpoint From Master ${state.ventSetPoint}%"
+    if(!PauseRoom){
+        state.ventSetPoint=(100/state.area*newArea).toInteger()
+        infolog "New Setpoint From Master ${state.ventSetPoint}%"
     	vents.each{ vent ->  
             if(vent.currentValue("level")>(state.ventSetPoint+3)||vent.currentValue("level")<(state.ventSetPoint-3)){
                 vent.setLevel(state.ventSetPoint)
@@ -209,11 +213,14 @@ def setArea(newArea){
             }
             else infolog "No Change To ${vent} ${vent.currentValue("level")}% is in Range"
         }
-    if(vRoom) {
-        def roomDevice = getChildDevice("vRoom_${app.id}")
-        roomDevice.setVentLevel(state.ventSetPoint)
-        infolog "Updated Child Device "
+    
+        if(vRoom) {
+            def roomDevice = getChildDevice("vRoom_${app.id}")
+            roomDevice.setVentLevel(state.ventSetPoint)
+            infolog "Updated Child Device "
+        }
     }
+    else infolog "Room is paused updates from parent were not applied."
 }
 
 def checkVentSP(){
@@ -226,34 +233,26 @@ def checkVentSP(){
 
 // SEND UPDATES TO PARENT 
 def updateMaster(){
-    infolog "Sending Room Values to Master"
-    ChildMap = [:]
-    ChildMap.room = app.label
-    ChildMap.area = state.area
-    ChildMap.delta = state.delta  
-    ChildMap.setpoint = state.roomSetPoint
-    ChildMap.currentTemperature = state.currentTemperature
-    if(humSensor)ChildMap.currentHumidity = state.currentHumidity
-    debuglog "Child Values ${ChildMap}"
-    parent.SetChildStats(ChildMap)   
-	infolog "Master was Updated"
+    if(!PauseRoom){
+        infolog "Sending Room Values to Master"
+        ChildMap = [:]
+        ChildMap.room = app.label
+        ChildMap.area = state.area
+        ChildMap.delta = state.delta  
+        ChildMap.setpoint = state.roomSetPoint
+        ChildMap.currentTemperature = state.currentTemperature
+        if(humSensor)ChildMap.currentHumidity = state.currentHumidity
+        debuglog "Child Values ${ChildMap}"
+        parent.SetChildStats(ChildMap)   
+	    infolog "Master was Updated"
+    }
+    else infolog "Room is paused no updates were sent to the parent."
 }
 
 // Debug/Logging
+def infolog(statement){   
+    if (infoEnable){log.info(statement)}
+}
 def debuglog(statement){   
-    def logL = 0
-    if (logLevel) logL = logLevel.toInteger()
-    if (logL == 0) {return}//bail
-    else if (logL >= 2){log.debug(statement)}
-}
-
-def infolog(statement){       
-    def logL = 0
-    if (logLevel) logL = logLevel.toInteger()
-    if (logL == 0) {return}//bail
-    else if (logL >= 1){log.info(statement)}
-}
-
-def getLogLevels() {
-    return [["0":"None"],["1":"Info"],["2":"Debug"]]
+    if (debugEnable){log.debug(statement)}
 }
