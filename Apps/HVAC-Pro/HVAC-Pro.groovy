@@ -11,47 +11,46 @@
    )
 
 
-preferences {page(name: "pageConfig")}//
+preferences {page(name: "pageConfig")}
 
 def pageConfig(){
-   dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0){
-	   
-	section("Smart HVAC") {input "Pause", "bool", title: "Pause control for this automation.", required: true, defaultValue: false, submitOnChange: true}
-	   
-      	section("HVAC Setup"){
+    dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0){
+       
+      section("Logging"){
+          input "Pause", "bool", title: "Pause Control.", required: false, defaultValue: false, submitOnChange: true ,width: 3
+          input "infoEnable", "bool", title: "Enable Info Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
+          input "debugEnable", "bool", title: "Enable Debug Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
+      }
+       
+      section("HVAC Setup"){
          input name : "tStat", type : "capability.thermostat", title: "Main Household thermostat", required: true
-         //input name : "isACcapable", title : "System is AC capable", multiple : false ,required : true, type	: "bool" ,submitOnChange : true, defaultValue : true
          input name : "blowerRun", type : "capability.contactSensor", title: "Blower Running Input", required: false
          input name : "overPressure", type : "capability.contactSensor", title: "Static Pressure Overpressure Switch", required: false
-         input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 250, submitOnChange: true
-         input "staticValue", "number", title: "Enter The Total in² of Static Vents:", defaultValue: 0, submitOnChange: true
-         input "maxDelta", "number", title: "Enter The Max Room Delta (Degrees):", defaultValue: 3, submitOnChange: true
-         input "refresh", "number", title: "Enter The Update Interval (Seconds):", defaultValue: 60, submitOnChange: true
+         input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 250, submitOnChange: true ,width: 4
+         input "staticValue", "number", title: "Enter The Total in² of Static Vents:", defaultValue: 0, submitOnChange: true ,width: 4
+         input "maxDelta", "number", title: "Enter The Max Room Delta (Degrees):", defaultValue: 3, submitOnChange: true ,width: 4
+         input "refresh", "number", title: "Enter The Minimum Update Interval (Seconds):", defaultValue: 60, submitOnChange: true
       }
         
       section("Rooms"){
-		if (installed){
-         section("Rooms"){
-            app(name: "childRooms", appName: "HVAC-Room", namespace: "gunz", title: "Create New Room...", multiple: true)
-         }
-      }	
+        if (installed){
+            section("Rooms"){
+                app(name: "childRooms", appName: "HVAC-Room", namespace: "gunz", title: "Create New Room...", multiple: true)
+            }
+        }	
       }
-        
-      section("Logging"){
-         input(name: "logLevel",title: "IDE logging level" ,multiple: false ,required: true ,type: "enum" ,options: getLogLevels() ,submitOnChange: false ,defaultValue: "0")  
-      }     
 	}
 }
 
 //=========================================================================
 def installed(){
     initialize()
-   }
+}
    
 def updated(){
    unsubscribe()
    initialize()
-   }
+}
    
 def initialize(){
     state.clear()
@@ -86,7 +85,7 @@ def initialize(){
       state.childVentSize= [:]
       state.childDelta= [:]
       state.childVentSP= [:]
-      }  
+   }  
     
    infolog "Getting Child Values"
    childApps.each {child ->
@@ -99,16 +98,16 @@ def initialize(){
     childVentCalc()   
     update()    
     
-    } //end init
+} //end init
 
 def setTstatMode(evt){
 	infolog "Running setTstatMode"
 	state.thermostatMode = evt.value.toUpperCase()
-   debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
+    debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
 	   childApps.each {child -> 
          child.MainTstatStateChange(state.thermostatMode)
-      }
-   }
+       }
+}
 
 def getMainTstatState(){
 	def TstatState = tStat.currentValue("thermostatOperatingState")
@@ -116,30 +115,30 @@ def getMainTstatState(){
       else {TstatState = "NULL"}
    debuglog "getMainTstatState Main TstatState : ${TstatState}"
 	return TstatState
-   }
+}
 
 def OperatingStateHandler(evt){
 	debuglog "OperatingStateHandler event : ${evt}"
 	def newTstatState = evt.value.toUpperCase()
       if (newTstatState != state.operState) state.operState = newTstatState
-   }
+}
 
 def blowerHandler(evt){
     debuglog "Blower Run event : ${evt}"
     state.blowerRun = evt.value.toUpperCase()
     return state.blowerRun
-   }
+}
    
 def pressureHandler(evt){
     debuglog "Overpressure Run event : ${evt}"
     state.overPressure = evt.value.toUpperCase()
     return state.overPressure
-   }
+}
 
 // Called from child during init
 def HVACmode(){
     return state.thermostatMode
-   }
+}
 
 // Called from child when there is an update for the parent
 def SetChildStats(RoomStat){
@@ -149,31 +148,32 @@ def SetChildStats(RoomStat){
    state.roomMap[RoomStat.room].delta=(RoomStat.delta)
    state.childVentSize[RoomStat.room]= RoomStat.area
    state.childDelta[RoomStat.room]= RoomStat.delta
-   infolog "Updated Room ${[RoomStat.room]}"
+   infolog "Processed Room ${[RoomStat.room]}"
    debuglog "Set Room Data:${[RoomStat.room]}:${state.roomMap[RoomStat.room]}"
-   childVentCalc()
-   }
+   if(!Pause)childVentCalc()
+   if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
+}
 
 
 // ================ Do a Bunch of Math ================
 def childVentCalc(){
     debuglog "Running Vent Calculations ${state.roomMap}"
-   state.areaTotal=0
-   state.deltaTotal=0
-   state.stage=1
-   state.roomMap.each{k, v-> 
-      state.areaTotal = state.areaTotal + v.area
-      state.deltaTotal = state.deltaTotal + v.delta
-      }
+    state.areaTotal=0
+    state.deltaTotal=0
+    state.stage=1
+    state.roomMap.each{k, v-> 
+        state.areaTotal = state.areaTotal + v.area
+        state.deltaTotal = state.deltaTotal + v.delta
+    }
       
 //Setup initial values for data 
-   state.roomMap.each{k, v->  
-      v.deltaWGT = (childApps.size() / state.areaTotal * v.area).toFloat()
-      v.newDelta = (v.delta / v.deltaWGT).toFloat()
-      if (v.delta > maxDelta) v.initArea = v.area       
-      if (v.delta < 0) v.initArea = 0
-      if ((v.delta >= 0) && (v.delta <= maxDelta)) v.initArea = (v.area/maxDelta*v.delta).toFloat()
-      }
+    state.roomMap.each{k, v->  
+        v.deltaWGT = (childApps.size() / state.areaTotal * v.area).toFloat()
+        v.newDelta = (v.delta / v.deltaWGT).toFloat()
+        if (v.delta > maxDelta) v.initArea = v.area       
+        if (v.delta < 0) v.initArea = 0
+        if ((v.delta >= 0) && (v.delta <= maxDelta)) v.initArea = (v.area/maxDelta*v.delta).toFloat()
+    }
     
 //Get the initAreaSum and remainder 
    state.initAreaSum=0
@@ -312,9 +312,8 @@ def childVentCalc(){
                v.loopArea = v.initArea
         }
     
-        state.count = 0
-    while (state.loopRem > 0.1 && state.count <500) {
-           
+    state.count = 0
+    while (state.loopRem > 0.1 && state.count <500) {        
             state.loopSum=0
             state.roomMap.each{k, v->  
                v.reduce = (state.loopRem*v.prodScale).toFloat()
@@ -338,6 +337,13 @@ def childVentCalc(){
    
 }// end calc
 
+def update(){
+    if (state.operState=="COOLING" && state.stage>99 && !Pause) sendVentUpdate()
+    else if (state.operState=="HEATING" && state.stage>99 && !Pause) sendVentUpdate()
+    else if (state.operState=="FAN ONLY" && state.stage>99 && !Pause) sendVentUpdate()
+    else if (state.blowerRun=="CLOSED" && state.stage>99 && !Pause) sendVentUpdate()
+    runIn(refresh,update)
+}
 
 def sendVentUpdate() {   
     childApps.each {child ->
@@ -353,29 +359,11 @@ def sendVentUpdate() {
     state.stage=0
 }
 
-def update(){
-    if (state.operState=="COOLING" && state.stage>99) sendVentUpdate()
-    else if (state.operState=="HEATING" && state.stage>99) sendVentUpdate()
-    else if (state.operState=="FAN ONLY" && state.stage>99) sendVentUpdate()
-    else if (state.blowerRun=="CLOSED" && state.stage>99) sendVentUpdate()
-    runIn(refresh,update)
-}
-
 //    ========== Debug/Logging ==========
 def debuglog(statement){   
-    def logL = 0
-    if (logLevel) logL = logLevel.toInteger()
-    if (logL == 0) {return}//bail
-    else if (logL >= 2){log.debug(statement)}
+    if (debugEnable){log.debug(statement)}
 }
 
-def infolog(statement){       
-    def logL = 0
-    if (logLevel) logL = logLevel.toInteger()
-    if (logL == 0) {return}//bail
-    else if (logL >= 1){log.info(statement)}
-}
-
-def getLogLevels() {
-    return [["0":"None"],["1":"Info"],["2":"Debug"]]
+def infolog(statement){   
+    if (infoEnable){log.info(statement)}
 }
