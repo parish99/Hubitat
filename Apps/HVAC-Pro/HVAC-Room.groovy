@@ -108,6 +108,7 @@ def initialize(){
     if (state.HVACmode=="HEAT") state.roomSetPoint = state.HeatSetpoint
     else state.roomSetPoint = state.CoolSetpoint 
     setDelta()
+    //parent.initialize()
     updateMaster()
     if(vRoom) createRoomDevice()
 	infolog "Done init"      
