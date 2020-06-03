@@ -367,3 +367,4 @@ def debuglog(statement){
 def infolog(statement){   
     if (infoEnable){log.info(statement)}
 }
+ 
