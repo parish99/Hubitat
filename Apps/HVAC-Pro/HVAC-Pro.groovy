@@ -144,6 +144,7 @@ def HVACmode(){
 def SetChildStats(RoomStat){
    infolog "Recieved Child Data : ${RoomStat}"
    if(RoomStat.delta==0) RoomStat.delta=0.1 //avoids a bunch of divide by zero crap
+   if (!state.roomMap[RoomStat.room]) state.roomMap[RoomStat.room]=[:]
    state.roomMap[RoomStat.room].area=(RoomStat.area)
    state.roomMap[RoomStat.room].delta=(RoomStat.delta)
    state.childVentSize[RoomStat.room]= RoomStat.area
