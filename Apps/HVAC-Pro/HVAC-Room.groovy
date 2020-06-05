@@ -20,11 +20,14 @@ def pageConfig(){
         
       section("Room Control"){
           input "PauseRoom", "bool", title: "Pause control.", required: false, defaultValue: false, submitOnChange: true ,width: 3
-          input "infoEnable", "bool", title: "Enable Info Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
-          input "debugEnable", "bool", title: "Enable Debug Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
+          input "infoEnable", "bool", title: "Enable Info Logging.", required: false, defaultValue: true, submitOnChange: true ,width: 3
+          input "debugEnable", "bool", title: "Enable Debug Logging.", required: false, defaultValue: true, submitOnChange: true ,width: 3
       }
        
-      section("Room Thermostat Mode Control"){input "tstatControl", "bool", title: "Allow Main Thermostat to Control Room Thermostat Mode.", required: false, defaultValue: true, submitOnChange: true}
+      section("Room Thermostat Control"){
+          input "tstatMode", "bool", title: "Allow Main Thermostat to Control Room Thermostat Mode.", required: false, defaultValue: true, submitOnChange: true
+          input "tstatTemp", "bool", title: "Allow Temperature Sensor To Update Room Thermostat Temperature.", required: false, defaultValue: true, submitOnChange: true
+      }
         
       section("Devices"){
          input "vStat", "capability.thermostat", title: "Room Thermostat used for setpoints", required: true
@@ -125,6 +128,7 @@ def tempHandler(evt) {
 	infolog "Updated Temperature"
 	state.currentTemperature = evt.value.toFloat().round(1)
 	debuglog "Room Temperature set to ${state.currentTemperature}"
+    if(tstatTemp){vStat.setTemperature(state.currentTemperature)}
     setDelta()
 	updateMaster()
 }
@@ -192,9 +196,11 @@ def setDelta(){
 
 // CALLED FROM PARENT
 def getArea(){return(state.area)}
+
 def getDelta(){return(state.delta)}
+
 def MainTstatStateChange(Mode) {
-    if(tstatControl){
+    if(tstatMode){
     debuglog "Master Sent thrermostat mode ${Mode}"
     state.HVACmode=Mode
     vStat.setThermostatMode(Mode.toLowerCase())
@@ -202,6 +208,17 @@ def MainTstatStateChange(Mode) {
     updateMaster()
     }
 }
+/*
+def MainTstatStateTemp(Temp) {
+    if(tstatTemp){
+    debuglog "Master Sent thrermostat Setpoint ${Temp}"
+    //state.HVACmode=Mode
+    vStat.setThermostat.coolsetpoint(Temp)
+    setDelta()
+    updateMaster()
+    }
+}
+*/
 def setArea(newArea){
     if(!PauseRoom){
         state.ventSetPoint=(100/state.area*newArea).toInteger()
