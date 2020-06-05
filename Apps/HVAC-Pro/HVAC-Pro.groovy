@@ -16,7 +16,7 @@ preferences {page(name: "pageConfig")}
 def pageConfig(){
     dynamicPage(name: "", title: "", install: true, uninstall: true, refreshInterval:0){
        
-      section("Logging"){
+      section("Settings"){
           input "Pause", "bool", title: "Pause Control.", required: false, defaultValue: false, submitOnChange: true ,width: 3
           input "infoEnable", "bool", title: "Enable Info Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
           input "debugEnable", "bool", title: "Enable Debug Logging.", required: false, defaultValue: false, submitOnChange: true ,width: 3
