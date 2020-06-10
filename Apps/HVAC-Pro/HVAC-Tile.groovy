@@ -101,7 +101,7 @@ def setValues(os,sm,tt,tl,hl,vl,sf,sl,ll,msg){
     
     def tileDat = ""+"<br>"
     if (map.Presence != null) tileDat += "Presence:          "+map.Presence+"<br>"
-    tileDat += "Mode:                     "+map.Mode+"<br>"
+    tileDat += "HVAC:                     "+map.Mode+"<br>"
     tileDat += "Target Temp:      "+map.Target+"°F"+"<br>"
     tileDat += "Temperature:    "+map.Temperature+"°F"+"<br>"
     if (map.Humidity != null) tileDat += "Humidity:         "+map.Humidity+"%"+"<br>"
