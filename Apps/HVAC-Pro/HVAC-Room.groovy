@@ -73,7 +73,8 @@ def initialize(){
     vents.each{vent ->
 		debuglog "Getting Vent ${vent}"
 		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
-    }   
+        state.currentVentLevel =vent.currentValue("level")
+    }
     if(humSensor){
         debuglog "Subscribe to humidity"
         subscribe(humSensor, "humidity", humHandler)
@@ -89,7 +90,7 @@ def initialize(){
     }
     if(luxSensor){
         debuglog "Subscribe to Light Sensor"
-        subscribe(luxSensor, "motion.active", luxHandler)
+        subscribe(luxSensor, "illuminance", luxHandler)
         debuglog "Getting current room illumination" 
         state.currentLux = luxSensor.currentValue("illuminance")
     }
@@ -113,7 +114,8 @@ def initialize(){
     setDelta()
     //parent.initialize()
     updateMaster()
-    if(vRoom) createRoomDevice()
+    if(vRoom)createRoomDevice()
+    if(vRoom)childTileUpdate()
 	infolog "Done init"      
 }
 
@@ -131,12 +133,14 @@ def tempHandler(evt) {
     if(tstatTemp){vStat.setTemperature(state.currentTemperature)}
     setDelta()
 	updateMaster()
+    if(vRoom)childTileUpdate()
 }
 
 def humHandler(evt) {
 	infolog "Updated Humidity"
 	state.currentHumidity = evt.value.toFloat().round(1)
 	debuglog "Room Humidity set to ${state.currentHumidity}"
+    if(vRoom)childTileUpdate()
 }
 
 def motionAHandler(evt) {
@@ -145,18 +149,21 @@ def motionAHandler(evt) {
 	state.Motion = evt.value
 	debuglog "Room Motion set to ${state.Motion}"
 	updateMaster()
+    if(vRoom)childTileUpdate()
 }
 
 def luxHandler(evt) {
 	infolog "Light Level Changed"
 	state.currentLux = evt.value
 	debuglog "Room Lux set to ${state.currentLux}"
+    if(vRoom)childTileUpdate()
 }
 
 def fanHandler(evt) {
 	infolog "Fan Speed Changed"
 	state.fanSpeed = evt.value
 	debuglog "Fan Speed set to ${state.fanSpeed}"
+    if(vRoom)childTileUpdate()
 }
 
 def ventHandler(evt) {
@@ -165,8 +172,11 @@ def ventHandler(evt) {
 	//state.VentOpeningMap = [:]
 	vents.each{ vent ->
 		debuglog "Getting Vent ${vent}"
-		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
+		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")   
 	}
+    state.currentVentLevel = evt.value
+    if(vRoom)childTileUpdate()
+    
 	infolog "state.VentOpeningMap after =  ${state.VentOpeningMap}"
 }
 
@@ -177,6 +187,7 @@ def setTstatHSP(evt) {
 	debuglog "Hot setpoint set to ${state.HeatSetpoint}"
     setDelta()
     updateMaster()
+    if(vRoom)childTileUpdate()
 }
 
 def setTstatCSP(evt) {
@@ -186,6 +197,7 @@ def setTstatCSP(evt) {
 	debuglog "Cold setpoint set to ${state.CoolSetpoint}"
     setDelta()
     updateMaster()
+    if(vRoom)childTileUpdate()
 }
 
 def setDelta(){
@@ -206,6 +218,7 @@ def MainTstatStateChange(Mode) {
     vStat.setThermostatMode(Mode.toLowerCase())
     setDelta()
     updateMaster()
+    if(vRoom)childTileUpdate()
     }
 }
 /*
@@ -232,11 +245,8 @@ def setArea(newArea){
             else infolog "No Change To ${vent} ${vent.currentValue("level")}% is in Range"
         }
     
-        if(vRoom) {
-            def roomDevice = getChildDevice("vRoom_${app.id}")
-            roomDevice.setVentLevel(state.ventSetPoint)
-            infolog "Updated Child Device "
-        }
+      if(vRoom)childTileUpdate() 
+      
     }
     else infolog "Room is paused updates from parent were not applied."
 }
@@ -265,6 +275,15 @@ def updateMaster(){
 	    infolog "Master was Updated"
     }
     else infolog "Room is paused no updates were sent to the parent."
+}
+
+// UPDATE CHILD TILE DEVICE
+def childTileUpdate(){
+    if(vRoom) {
+        def roomDevice = getChildDevice("vRoom_${app.id}")
+        roomDevice.setValues(state.Motion,state.HVACmode,state.roomSetPoint,state.currentTemperature,state.currentHumidity,state.currentVentLevel,state.fanSpeed,state.currentShadeLevel,state.currentLux,state.ventCom)
+        infolog "Updated Child Device "
+    }
 }
 
 // Debug/Logging
