@@ -60,6 +60,7 @@ def initialize(){
 	infolog "Init"
 	state.clear()
     state.area = Area 
+    state.msg = "Updating"
     state.delta = 0.0
     state.ventCom="Online"
     debuglog "Subscribe to tempSensor"
@@ -75,6 +76,7 @@ def initialize(){
 		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")
         state.currentVentLevel =vent.currentValue("level")
     }
+    state.ventSetPoint=state.currentVentLevel
     if(humSensor){
         debuglog "Subscribe to humidity"
         subscribe(humSensor, "humidity", humHandler)
@@ -83,10 +85,10 @@ def initialize(){
     }
     if(motion){
         debuglog "Subscribe to motion"
-        subscribe(motion, "motion.active", motionAHandler)
+        subscribe(motion, "motion", motionAHandler)
         debuglog "Getting current Room Motion" 
-        state.Motion = motion.currentValue("motion")
-        state.occupied = motion.currentValue("motion")
+        state.Motion = motion.currentValue("motion").capitalize()
+        state.occupied = "Occupied" //motion.currentValue("motion")
     }
     if(luxSensor){
         debuglog "Subscribe to Light Sensor"
@@ -101,11 +103,14 @@ def initialize(){
         state.fanSpeed = speed.currentValue("speed")
     }
     
+    debuglog "Getting House Thermostat Mode"
+    state.HVACmode = parent.HVACmode()
     debuglog "Getting House Thermostat State"
-    state.HVACmode = parent.HVACmode() 
+    state.HVACstate = parent.HVACstate() 
     debuglog "Subscribe to Room Thermostat"
     subscribe(vStat, "heatingSetpoint", setTstatHSP)
     subscribe(vStat, "coolingSetpoint", setTstatCSP)
+    subscribe(vStat, "thermostatMode", setVstatMode)
     debuglog "Getting Room Thermostat Setpoint" 
 	state.HeatSetpoint = vStat.currentValue("heatingSetpoint")
     state.CoolSetpoint = vStat.currentValue("coolingSetpoint")
@@ -145,8 +150,8 @@ def humHandler(evt) {
 
 def motionAHandler(evt) {
 	infolog "Motion Detected"
-    state.occupied = evt.value
-	state.Motion = evt.value
+    state.occupied = "Occupied"
+	state.Motion = evt.value.capitalize()
 	debuglog "Room Motion set to ${state.Motion}"
 	updateMaster()
     if(vRoom)childTileUpdate()
@@ -200,6 +205,13 @@ def setTstatCSP(evt) {
     if(vRoom)childTileUpdate()
 }
 
+def setVstatMode(evt) {
+	infolog "Room Thermostat Mode"
+	state.HVACmode = evt.value.toUpperCase()
+	debuglog "Room Thermostat set to ${state.HVACmode}"
+    if(vRoom)childTileUpdate()
+}
+
 def setDelta(){
     if (state.HVACmode=="HEAT") state.delta = (state.HeatSetpoint - state.currentTemperature).toFloat().round(1)
     else state.delta = (state.currentTemperature - state.CoolSetpoint).toFloat().round(1)
@@ -211,27 +223,23 @@ def getArea(){return(state.area)}
 
 def getDelta(){return(state.delta)}
 
-def MainTstatStateChange(Mode) {
+def MainTstatModeChange(Mode) {
     if(tstatMode){
-    debuglog "Master Sent thrermostat mode ${Mode}"
-    state.HVACmode=Mode
-    vStat.setThermostatMode(Mode.toLowerCase())
-    setDelta()
-    updateMaster()
-    if(vRoom)childTileUpdate()
+        debuglog "Master Sent Thrermostat Update ${Mode}"
+        state.HVACmode=Mode
+        vStat.setThermostatMode(Mode.toLowerCase())
+        setDelta()
+        updateMaster()
+        //if(vRoom)childTileUpdate()
     }
 }
-/*
-def MainTstatStateTemp(Temp) {
-    if(tstatTemp){
-    debuglog "Master Sent thrermostat Setpoint ${Temp}"
-    //state.HVACmode=Mode
-    vStat.setThermostat.coolsetpoint(Temp)
-    setDelta()
-    updateMaster()
-    }
+
+def MainTstatStateChange(State) {
+        debuglog "Master Sent Thrermostat Update ${State}"
+        state.HVACstate=State
+        if(vRoom)childTileUpdate()
 }
-*/
+
 def setArea(newArea){
     if(!PauseRoom){
         state.ventSetPoint=(100/state.area*newArea).toInteger()
@@ -280,8 +288,11 @@ def updateMaster(){
 // UPDATE CHILD TILE DEVICE
 def childTileUpdate(){
     if(vRoom) {
+        if (state.ventCom == "Offline") state.msg = "Unresponsive"
+        else state.msg = "Idle"
+        
         def roomDevice = getChildDevice("vRoom_${app.id}")
-        roomDevice.setValues(state.Motion,state.HVACmode,state.roomSetPoint,state.currentTemperature,state.currentHumidity,state.currentVentLevel,state.fanSpeed,state.currentShadeLevel,state.currentLux,state.ventCom)
+        roomDevice.setValues(state.occupied,state.Motion,state.HVACmode,state.HVACstate,state.roomSetPoint,state.currentTemperature,state.currentHumidity,state.ventSetPoint,state.currentVentLevel,state.fanSpeed,state.currentShadeLevel,state.currentLux,state.msg)
         infolog "Updated Child Device "
     }
 }
