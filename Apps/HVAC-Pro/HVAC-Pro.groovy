@@ -100,15 +100,17 @@ def initialize(){
     
 } //end init
 
+//Get Main Thermostat Mode
 def setTstatMode(evt){
 	infolog "Running setTstatMode"
 	state.thermostatMode = evt.value.toUpperCase()
     debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
 	   childApps.each {child -> 
-         child.MainTstatStateChange(state.thermostatMode)
+         child.MainTstatModeChange(state.thermostatMode)
        }
 }
 
+/*
 def getMainTstatState(){
 	def TstatState = tStat.currentValue("thermostatOperatingState")
       if (TstatState!=null){TstatState = TstatState.toUpperCase()}
@@ -116,6 +118,7 @@ def getMainTstatState(){
    debuglog "getMainTstatState Main TstatState : ${TstatState}"
 	return TstatState
 }
+*/
 
 def OperatingStateHandler(evt){
 	debuglog "OperatingStateHandler event : ${evt}"
@@ -138,6 +141,9 @@ def pressureHandler(evt){
 // Called from child during init
 def HVACmode(){
     return state.thermostatMode
+}
+def HVACstate(){
+    return state.operState
 }
 
 // Called from child when there is an update for the parent
@@ -366,6 +372,6 @@ def debuglog(statement){
 }
 
 def infolog(statement){   
-    if (infoEnable){log.info(statement)} 
+    if (infoEnable){log.info(statement)}
 }
  
