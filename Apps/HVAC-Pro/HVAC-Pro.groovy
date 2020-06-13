@@ -1,3 +1,27 @@
+/*  ----------------------------------------------------------------------------------
+**  Copyright 2020 Jason Parish
+**
+**  This application is meant to control hvac smart vents to try and maintain a set
+**  amount of open vents.  The purpose behind this method is to maintaine the optimal
+**  amount of airflow across the HVAC equipment.  This can eliminate the need for a
+**  dual zoned furnace for the upper and lower portion of a home.  It also allows
+**  control over the temperature of the air coming out of the vents.
+**
+**  Licensed under the Apache License, Version 2.0 (the "License");
+**  you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+**
+**  Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissions and
+**  limitations under the License.
+**
+**  Version Notes // 06-13-20
+**  1.0.5 Initial Release
+**
+**
+** ---------------------------------------------------------------------------------*/
 
  definition(
    name		: "HVAC-Pro",
@@ -9,7 +33,6 @@
    iconX2Url	: "",
    iconX3Url	: ""
    )
-
 
 preferences {page(name: "pageConfig")}
 
@@ -39,10 +62,13 @@ def pageConfig(){
             }
         }	
       }
+        
+      section("HVAC Home Tile"){input(name: "HMDT" ,title: "Create A Home Tile Device?" ,multiple:false ,required:false ,type: "bool" ,submitOnChange:true, defaultValue:false)} 
+        
 	}
 }
 
-//=========================================================================
+/* ---------------------------------------------------------------------------------*/
 def installed(){
     initialize()
 }
@@ -57,23 +83,30 @@ def initialize(){
     infolog "Initializing"
     subscribe(tStat, "thermostatMode", setTstatMode)
     debuglog "Getting local virtual Thermostat thermostatMode" 
-	state.thermostatMode = tStat.currentValue("thermostatMode").toUpperCase()
+	state.thermostatMode = tStat.currentValue("thermostatMode").toLowerCase().capitalize()
     debuglog "Main TstatState : ${state.thermostatMode}"    
     debuglog "Getting Thermostat running State" 
     subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)  
-    state.operState = tStat.currentValue("thermostatOperatingState").toUpperCase()
+    state.operState = tStat.currentValue("thermostatOperatingState").toLowerCase().capitalize()
     debuglog "Main TstatState : ${state.operState}"
-   
+    state.currentTemperature = tStat.currentValue("temperature")
+    if(HMDT)subscribe(tStat, "heatingSetpoint", setTstatHSP)
+    if(HMDT)subscribe(tStat, "coolingSetpoint", setTstatCSP)
+    if(HMDT)subscribe(tStat, "temperature", tempHandler)
+
    if (blowerRun) {
    subscribe(blowerRun, "contact", blowerHandler)
    debuglog "Getting Blower State "
-   state.blowerRun = blowerRun.currentValue("contact").toUpperCase()
+   state.blowerRun = blowerRun.currentValue("contact").toLowerCase().capitalize()
+   childApps.each {child ->
+       child.getBlower(state.blowerRun)
+    }    
    }
    
    if (staticPres) {
    subscribe(staticPres, "contact", pressureHandler)
    debuglog "Getting Static Pressure State "
-   state.overPressure = overPressure.currentValue("contact").toUpperCase()
+   state.overPressure = overPressure.currentValue("contact").toLowerCase().capitalize()
    }
    
    debuglog "There are ${childApps.size()} installed child apps"
@@ -96,46 +129,72 @@ def initialize(){
        debuglog "Initial Room Data:${[child.label]}:${state.roomMap[child.label]}"
    }   
     childVentCalc()   
-    update()    
+    update()
+    if(HMDT)createDataTile()
     
-} //end init
+}
+/* ---------------------------------------------------------------------------------*/
 
-//Get Main Thermostat Mode
+def createDataTile() {
+    def roomDevice = getChildDevice("HMDT_${app.id}")
+	if(!roomDevice) roomDevice = addChildDevice("gunz", "HVAC-HMD", "HMDT_${app.id}", null, [label: ("${app.label}"), name: thisName])
+}
+
 def setTstatMode(evt){
 	infolog "Running setTstatMode"
-	state.thermostatMode = evt.value.toUpperCase()
+	state.thermostatMode = evt.value.toLowerCase().capitalize()
     debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
-	   childApps.each {child -> 
-         child.MainTstatModeChange(state.thermostatMode)
-       }
+	childApps.each {child -> 
+        child.MainTstatModeChange(state.thermostatMode)
+    }
+    if(HMDT)childTileUpdate()
 }
-
-/*
-def getMainTstatState(){
-	def TstatState = tStat.currentValue("thermostatOperatingState")
-      if (TstatState!=null){TstatState = TstatState.toUpperCase()}
-      else {TstatState = "NULL"}
-   debuglog "getMainTstatState Main TstatState : ${TstatState}"
-	return TstatState
-}
-*/
 
 def OperatingStateHandler(evt){
 	debuglog "OperatingStateHandler event : ${evt}"
-	def newTstatState = evt.value.toUpperCase()
-      if (newTstatState != state.operState) state.operState = newTstatState
+	def newTstatState = evt.toLowerCase().capitalize()
+    if (newTstatState != state.operState) state.operState = newTstatState
+    if(HMDT)childTileUpdate()
 }
 
 def blowerHandler(evt){
     debuglog "Blower Run event : ${evt}"
-    state.blowerRun = evt.value.toUpperCase()
+    state.blowerRun = evt.value.toLowerCase().capitalize()
+    childApps.each {child ->
+        child.getBlower(state.blowerRun)
+    }
+    if(HMDT)childTileUpdate()
     return state.blowerRun
 }
    
 def pressureHandler(evt){
     debuglog "Overpressure Run event : ${evt}"
-    state.overPressure = evt.value.toUpperCase()
+    state.overPressure = evt.value.toLowerCase().capitalize()
+    if(HMDT)childTileUpdate()
     return state.overPressure
+}
+
+def setTstatHSP(evt) {
+	infolog "Updated Room Heat Setpoint"
+    state.HeatSetpoint = evt.value.toFloat()
+    state.roomSetPoint = state.HeatSetpoint
+	debuglog "Hot setpoint set to ${state.HeatSetpoint}"
+    childTileUpdate()
+}
+
+def setTstatCSP(evt) {
+	infolog "Updated Cool Setpoint"
+    state.CoolSetpoint = evt.value.toFloat()
+    state.roomSetPoint = state.CoolSetpoint
+	debuglog "Cold setpoint set to ${state.CoolSetpoint}"
+    childTileUpdate()
+}
+
+def tempHandler(evt) {
+	infolog "Updated Temperature"
+	state.currentTemperature = evt.value.toFloat().round(1)
+	debuglog "Room Temperature set to ${state.currentTemperature}"
+    childTileUpdate()
 }
 
 // Called from child during init
@@ -160,7 +219,6 @@ def SetChildStats(RoomStat){
    if(!Pause)childVentCalc()
    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
 }
-
 
 // ================ Do a Bunch of Math ================
 def childVentCalc(){
@@ -198,7 +256,7 @@ def childVentCalc(){
       }
     state.actAreaSum = tempSum
 
-//***********  initAreaSum is greater than or Equal to the Target
+// InitAreaSum is greater than or Equal to the Target
     if (state.initAreaSum >= targetArea) {
            state.stage=100
            state.actDeltaSum=0
@@ -222,7 +280,7 @@ def childVentCalc(){
                else v.prodScale = 0
            }
     
-    //Start the reduction loop.
+// Start the reduction loop.
         state.loopRem=state.initRem
         state.roomMap.each{k, v->  
                v.loopArea = v.initArea
@@ -247,7 +305,7 @@ def childVentCalc(){
        state.stage=199
    }   //end the if block 
       
-//************ initAreaSum is Less than Target and actAreaSum is Greater or Equal to Target
+// InitAreaSum is Less than Target and actAreaSum is Greater or Equal to Target
    if (state.initAreaSum < targetArea && state.actAreaSum > targetArea) {
         state.stage=200   
        state.actDeltaSum=0
@@ -263,7 +321,7 @@ def childVentCalc(){
                else v.prodScale = 0
            }
     
-    //Start the reduction loop
+//Start the reduction loop
         state.loopRem=state.initRem
         state.roomMap.each{k, v->  
                v.loopArea = v.initArea
@@ -289,7 +347,7 @@ def childVentCalc(){
     
    }   //end the if block for stage 2       
      
-//************** initAreaSum is Less than Target and actAreaSum is Less than Target (use inactive vents)
+// InitAreaSum is Less than Target and actAreaSum is Less than Target (use inactive vents)
    if (state.actAreaSum < targetArea) {
          state.stage=300   
          state.actDeltaSum=0
@@ -313,7 +371,7 @@ def childVentCalc(){
             else v.prodScale = 0
             }      
             
-    //Start the reduction loop
+//Start the reduction loop
         state.loopRem=(targetArea-state.actAreaSum)
         state.roomMap.each{k, v->  
                v.loopArea = v.initArea
@@ -345,10 +403,10 @@ def childVentCalc(){
 }// end calc
 
 def update(){
-    if (state.operState=="COOLING" && state.stage>99 && !Pause) sendVentUpdate()
-    else if (state.operState=="HEATING" && state.stage>99 && !Pause) sendVentUpdate()
-    else if (state.operState=="FAN ONLY" && state.stage>99 && !Pause) sendVentUpdate()
-    else if (state.blowerRun=="CLOSED" && state.stage>99 && !Pause) sendVentUpdate()
+    if (state.operState=="Cooling" && state.stage>99 && !Pause) sendVentUpdate()
+    else if (state.operState=="Heating" && state.stage>99 && !Pause) sendVentUpdate()
+    else if (state.operState=="Fan Only" && state.stage>99 && !Pause) sendVentUpdate()
+    else if (state.blowerRun=="Closed" && state.stage>99 && !Pause) sendVentUpdate()
     runIn(refresh,update)
 }
 
@@ -364,9 +422,23 @@ def sendVentUpdate() {
     infolog "Updated Child Vent Target Area: ${state.childVentSP}"
     debuglog "****** Update Children Vents (Stage ${state.stage})******"
     state.stage=0
+    if(HMDT)childTileUpdate()
 }
 
-//    ========== Debug/Logging ==========
+// UPDATE CHILD TILE DEVICE
+def childTileUpdate(){
+    if(HMDT) {
+        state.msg = "Online"
+        fan = state.operState
+        if(state.operState=="Idle" && state.blowerRun == "Closed") fan="Fan On"
+        def roomDevice = getChildDevice("HMDT_${app.id}")
+        roomDevice.setValue(state.thermostatMode,state.operState,state.roomSetPoint,state.currentTemperature,state.msg)
+        infolog "Updated Child Device "
+        debuglog "Tile Data ${state.thermostatMode},${fan},${state.roomSetPoint},${state.currentTemperature},${state.msg}"
+    }
+}
+
+// ========== Debug/Logging ==========
 def debuglog(statement){   
     if (debugEnable){log.debug(statement)}
 }
@@ -374,4 +446,3 @@ def debuglog(statement){
 def infolog(statement){   
     if (infoEnable){log.info(statement)}
 }
- 
