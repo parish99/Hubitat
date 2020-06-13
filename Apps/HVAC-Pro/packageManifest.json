@@ -27,9 +27,16 @@
   	"drivers" : [
 		{
 			"id": "F8B7F71D-4D80-40AE-89CF-65AAECA7A569",
-			"name": "HVAC-Tile",
+			"name": "HVAC-RMD",
 			"namespace": "gunz",
-			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/HVAC-Tile.groovy",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/HVAC-RMD.groovy",
+			"required": false
+		},
+		{
+			"id": "F8B7F71D-4D80-40AE-89CF-65AAECA7A569",
+			"name": "HVAC-HMD",
+			"namespace": "gunz",
+			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/HVAC-HMD.groovy",
 			"required": false
 		}
 	]
