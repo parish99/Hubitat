@@ -1,5 +1,26 @@
+/*  ----------------------------------------------------------------------------------
+**  Copyright 2020 Jason Parish
+**
+**  Licensed under the Apache License, Version 2.0 (the "License");
+**  you may not use this file except in compliance with the License.
+**  You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+**
+**  Unless required by applicable law or agreed to in writing, software
+**  distributed under the License is distributed on an "AS IS" BASIS,
+**  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**  See the License for the specific language governing permissions and
+**  limitations under the License.
+**
+**  This device provides tile data for the HVAC-Pro application.
+**
+**  Version Notes // 06-13-20
+**  1.0.5 Initial Release
+**
+**
+** ---------------------------------------------------------------------------------*/
+
 metadata {
-    definition (name: "HVAC-Tile", namespace: "gunz", author: "Jason Parish") {
+    definition (name: "HVAC-RMD", namespace: "gunz", author: "Jason Parish") {
         //Capabilities 
         capability "SwitchLevel"
         capability "Temperature Measurement"
@@ -64,11 +85,11 @@ def setValues(os,mt,sm,ss,tt,tl,hl,vsp,vl,sf,sl,ll,msg){
     sendEvent(name: "message", value: msg)
     
     def map=[:]
-    if (txtEnable) log.info "${os},${mt},${sm},${ss}"
+    //if (txtEnable) log.info "${os},${mt},${sm},${ss}"
     map.Presence=os
     map.Motion=mt
-    map.tMode=sm.toLowerCase().capitalize()
-    map.tState=ss.toLowerCase().capitalize()
+    map.tMode=sm//.toLowerCase().capitalize()
+    map.tState=ss//.toLowerCase().capitalize()
     map.Target=tt
     map.Temperature=tl
     map.Humidity=hl
@@ -97,10 +118,15 @@ def setValues(os,mt,sm,ss,tt,tl,hl,vsp,vl,sf,sl,ll,msg){
     tileDat += "Status:      "+map.Msg+"<br>"
     
     //tileDat = "<div style='background-color: red;'${tileDat}</div>"
-    if(map.Motion == "Active")tileDat = "<div style='color: black; height: 140%; background-color: #ffcc00; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
-    else if(map.tMode == "Heat")tileDat = "<div style='color: white; height: 140%; background-color: #990000; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
-    else if(map.tMode == "Cool")tileDat = "<div style='color: white; height: 140%; background-color: #0066cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
-    else if(map.Msg == "Offline")tileDat = "<div style='color: black; height: 140%; background-color: #9900cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    if(map.Msg == "Unresponsive")tileDat = "<div style='color: black; height: 140%; background-color: #9900cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    else if(map.Motion == "Active")tileDat = "<div style='color: black; height: 140%; background-color: #ffcc00; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    
+    else if(map.tState == "Heating")tileDat = "<div style='color: white; height: 140%; background-color: #cc0000; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    else if(map.tState == "Cooling")tileDat = "<div style='color: white; height: 140%; background-color: #0066cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    else if(map.tMode == "Heat")tileDat = "<div style='color: white; height: 140%; background-color: #ff4d4d; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    else if(map.tMode == "Cool")tileDat = "<div style='color: white; height: 140%; background-color: #33adff; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    else if(map.tMode == "Auto")tileDat = "<div style='color: white; height: 140%; background-color: #00b300; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+
     else tileDat = "<div style='color: black; height: 140%; background-color: white; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
     
     sendEvent(name: "tileData", value: tileDat, isStateChange: true, displayed: true)
@@ -115,53 +141,4 @@ def setTargetTemp(tt) {
     sendEvent(name: "targetTemp", value: tt, unit: "%", descriptionText: descriptionText)
     updateDisplayTile()
 }
-
-def setVentLevel(vl) {
-    def descriptionText = "${device.displayName} Vent was set to $vl"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "ventPosition", value: vl, unit: "%", descriptionText: descriptionText)
-}
-
-def setLightLevel(ll) {
-    def descriptionText = "${device.displayName} Light was set to $ll"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "illuminance", value: ll, unit: "Lux", descriptionText: descriptionText)
-}
-
-def setHumidLevel(hl) {
-    def descriptionText = "${device.displayName} Humidity was set to $hl"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "humidity", value: hl, unit: "%", descriptionText: descriptionText)
-}
-
-def setTempLevel(tl) {
-    def descriptionText = "${device.displayName} Light was set to $tl"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "temperature", value: tl, unit: "F", descriptionText: descriptionText)
-}
-
-def setShadeLevel(sl) {
-    def descriptionText = "${device.displayName} Shade was set to $sl"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "shadePosition", value: sl, unit: "%", descriptionText: descriptionText)
-}
-
-def setMotion(os) {
-    def descriptionText = "${device.displayName} Motion was set to $os"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "presence", value: os, unit: "State", descriptionText: descriptionText)
-}
-
-def setMode(sm) {
-    def descriptionText = "${device.displayName} Mode was set to $sm"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "mode", value: sm, unit: " Mode", descriptionText: descriptionText)
-}
-
-def setFan(sf) {
-    def descriptionText = "${device.displayName} Fan was set to $sf"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "fanSpeed", value: sf, unit: "Level", descriptionText: descriptionText)
-}
-
 */
