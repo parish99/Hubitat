@@ -11,7 +11,7 @@
 **  See the License for the specific language governing permissions and
 **  limitations under the License.
 **
-**  This device provides tile data for the HVAC-Pro application.
+**  This device driver provides tile data for the HVAC-Pro room child application.
 **
 **  Version Notes // 06-13-20
 **  1.0.5 Initial Release
@@ -106,21 +106,27 @@ def setValues(os,mt,sm,ss,tt,tl,hl,vsp,vl,sf,sl,ll,msg){
     
     tileDat += device.label+"<br>"
     tileDat += "<br>"
-    tileDat += "HVAC: "+map.tMode+" and "+map.tState+"<br>"
+    //tileDat += "HVAC: "+map.tMode+" and "+map.tState+"<br>"
+    tileDat += map.Temperature+"°F"+" and "+map.tState+"<br>"
     //tileDat += "Temp SP: "+map.Target+"°F"+"<br>"
-    tileDat += "Temp: (SP "+map.Target+"-PV "+map.Temperature+")°F"+"<br>"
+    //tileDat += "Temp: (SP "+map.Target+"-PV "+map.Temperature+")°F"+"<br>"
+    if(map.tMode!="Off") tileDat += "Setpoint "+map.Target+"°F"+"<br>"
     //tileDat += "Temp PV:    "+map.Temperature+"°F"+"<br>"
-    if (map.Humidity != null) tileDat += "Humidity:         "+map.Humidity+"%"+"<br>"
-    tileDat += "Vent: (SP "+map.VentSP+"-"+"PV "+map.VentPos+")%"+"<br>"
-    if (map.FanSpeed != null) tileDat += "Fan Speed:                "+map.FanSpeed+"<br>"
-    if (map.Lux != null) tileDat += "Light:                "+map.Lux+" lux"+"<br>"
-    if (map.Presence != null) tileDat += "Presence:          "+map.Presence+"<br>"
-    tileDat += "Status:      "+map.Msg+"<br>"
+    if (map.Humidity != null) tileDat += "Humidity "+map.Humidity+"%"+"<br>"
+    
+    if(map.tMode=="Off" && map.tState != "Fan On") tileDat += "Vent "+map.VentPos+"%"+"<br>"
+    else tileDat += "Vent (SP "+map.VentSP+"-"+"PV "+map.VentPos+")%"+"<br>"
+    
+    if (map.FanSpeed != null) tileDat += "Fan Speed "+map.FanSpeed+"<br>"
+    if (map.Lux != null) tileDat += "Light "+map.Lux+" lux"+"<br>"
+    if (map.Presence != null) tileDat += "Presence "+map.Presence+"<br>"
+    tileDat += "Status "+map.Msg+"<br>"
+    
+    
     
     //tileDat = "<div style='background-color: red;'${tileDat}</div>"
-    if(map.Msg == "Unresponsive")tileDat = "<div style='color: black; height: 140%; background-color: #9900cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
+    if(map.Msg == "Unresponsive"&& map.tMode!="Off")tileDat = "<div style='color: black; height: 140%; background-color: #9900cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
     else if(map.Motion == "Active")tileDat = "<div style='color: black; height: 140%; background-color: #ffcc00; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
-    
     else if(map.tState == "Heating")tileDat = "<div style='color: white; height: 140%; background-color: #cc0000; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
     else if(map.tState == "Cooling")tileDat = "<div style='color: white; height: 140%; background-color: #0066cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
     else if(map.tMode == "Heat")tileDat = "<div style='color: white; height: 140%; background-color: #ff4d4d; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
@@ -131,14 +137,3 @@ def setValues(os,mt,sm,ss,tt,tl,hl,vsp,vl,sf,sl,ll,msg){
     
     sendEvent(name: "tileData", value: tileDat, isStateChange: true, displayed: true)
 }
-
-
-/*
-
-def setTargetTemp(tt) {
-    def descriptionText = "${device.displayName} Room Setpoint was set to $tt"
-    if (txtEnable) log.info "${descriptionText}"
-    sendEvent(name: "targetTemp", value: tt, unit: "%", descriptionText: descriptionText)
-    updateDisplayTile()
-}
-*/
