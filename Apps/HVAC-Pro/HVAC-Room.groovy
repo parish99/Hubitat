@@ -12,7 +12,10 @@
 **  limitations under the License.
 **
 **  Version Notes // 06-13-20
-**  1.0.5 Initial Release
+**  Multiple sections of code borrowed or inspired from other hubitat code,
+**  but most significantly from Napalmcsr and the Keenectlite application.
+**  1.0.0 Initial Release.
+**  1.0.5 Added Home and Room Tile devices to coding.
 **
 **
 ** ---------------------------------------------------------------------------------*/
@@ -213,6 +216,7 @@ def ventHandler(evt) {
 		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")   
 	}
     state.currentVentLevel = evt.value
+    
     if(vRoom)childTileUpdate()
     
 	infolog "state.VentOpeningMap after =  ${state.VentOpeningMap}"
@@ -300,7 +304,7 @@ def setArea(newArea){
         state.ventSetPoint=(100/state.area*newArea).toInteger()
         infolog "New Setpoint From Master ${state.ventSetPoint}%"
     	vents.each{ vent ->  
-            if(vent.currentValue("level")>(state.ventSetPoint+3)||vent.currentValue("level")<(state.ventSetPoint-3)){
+            if(vent.currentValue("level")>=(state.ventSetPoint+3)||vent.currentValue("level")<=(state.ventSetPoint-3)){
                 vent.setLevel(state.ventSetPoint)
                 runIn(20,checkVentSP)
                 infolog "Set Vent ${vent} to ${state.ventSetPoint}%"
@@ -318,14 +322,26 @@ def checkVentSP(){
     change=false
     comTemp=state.ventCom
     vents.each{ vent ->  
-        if(vent.currentValue("level")>(state.ventSetPoint+3)||vent.currentValue("level")<(state.ventSetPoint-3))state.ventCom="Unresponsive"
+        if(vent.currentValue("level")>=(state.ventSetPoint+3)||vent.currentValue("level")<=(state.ventSetPoint-3))state.ventCom="Unresponsive"
         else state.ventCom="Online"
         infolog "Vent ${vent}: is ${state.ventCom}"
         if(state.ventCom!=comTemp)change=true
+        if(change==true)runIn(30,tryAgain)
     }    
     if(vRoom && change)childTileUpdate()
 }
 
+def tryAgain(){
+    vents.each{ vent ->  
+            if(vent.currentValue("level")>=(state.ventSetPoint+3)||vent.currentValue("level")<=(state.ventSetPoint-3)){
+                vent.setLevel(state.ventSetPoint)
+                infolog "ReCheck Vent ${vent}: is ${state.ventCom}"
+                runIn(30,checkVentSP)
+            }
+    }
+}                                               
+                                               
+                                               
 // SEND UPDATES TO PARENT 
 def updateMaster(){
     if(!PauseRoom){
