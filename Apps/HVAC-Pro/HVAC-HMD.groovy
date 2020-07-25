@@ -58,7 +58,7 @@ def updated() {
     installed()
 }
 
-def setValue(tm,ts,sp,pv,msg){
+def setValue(tm,ts,sp,pv,msg,cvsp,lpsm){
     sendEvent(name: "tMode", value: tm, unit: " Mode")
     sendEvent(name: "tState", value: ts, unit: " State")
     sendEvent(name: "targetTemp", value: sp, unit: "%")
@@ -75,6 +75,8 @@ def setValue(tm,ts,sp,pv,msg){
     //map.Humidity=hl
     //map.Presence=os
     map.Msg=msg
+    map.Vents=cvsp
+    map.LoopSum=lpsm.toFloat().round(1)
 
     if (txtEnable) log.info "${map}"
     
@@ -89,6 +91,11 @@ def setValue(tm,ts,sp,pv,msg){
     //if (map.Humidity != null) tileDat += "Humidity:         "+map.Humidity+"%"+"<br>"
     //if (map.Presence != null) tileDat += "Presence:          "+map.Presence+"<br>"
     tileDat += "Status:      "+map.Msg+"<br>"
+    map.Vents.each{k, v-> 
+        if (txtEnable) log.info "${k}:${v}"
+        tileDat += k+" : "+v+"%"+"<br>"
+    }
+    tileDat += "Open Vent Sum "+map.LoopSum+"<br>"
     
     if(map.Msg == "Unresponsive")tileDat = "<div style='color: black; height: 140%; background-color: #9900cc; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
     //else if(map.Motion == "Active")tileDat = "<div style='color: black; height: 140%; background-color: #ffcc00; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
