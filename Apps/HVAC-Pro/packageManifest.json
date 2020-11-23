@@ -9,14 +9,14 @@
 	"communityLink": "https://community.hubitat.com",
 	"apps" : [
 		{
-			"id" : "6331014E-41A8-433E-91D3-4C15A879B0F5",
+			"id" : "8d2d0ad8-2d43-11eb-adc1-0242ac120002",
 			"name": "HVAC-Pro",
 			"namespace": "gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/HVAC-Pro.groovy",			
 			"required": true
 		},
     		{
-    			"id" : "8A11F2B2-3EFD-43DB-8FFF-AE10B3612FC5",
+    			"id" : "8d2d0d4e-2d43-11eb-adc1-0242ac120002",
 			"name": "HVAC-Room",
 			"namespace": "gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/HVAC-Room.groovy",
@@ -26,14 +26,14 @@
   
   	"drivers" : [
 		{
-			"id": "F8B7F71D-4D80-40AE-89CF-65AAECA7A569",
+			"id": "8d2d103c-2d43-11eb-adc1-0242ac120002",
 			"name": "HVAC-RMD",
 			"namespace": "gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/HVAC-RMD.groovy",
 			"required": false
 		},
 		{
-			"id": "66cdedf5-68bf-471f-8457-d6e8647e0d85",
+			"id": "8d2d110e-2d43-11eb-adc1-0242ac120002",
 			"name": "HVAC-HMD",
 			"namespace": "gunz",
 			"location": "https://raw.githubusercontent.com/parish99/Hubitat/master/Apps/HVAC-Pro/HVAC-HMD.groovy",
