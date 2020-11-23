@@ -14,8 +14,8 @@
 **  This device provides tile data for the HVAC-Pro application.
 **
 **  Version Notes // 06-13-20
-**  1.0.5 Initial Release
-**  TTT
+**  1.0.7 Initial Release
+**  
 **
 ** ---------------------------------------------------------------------------------*/
 
