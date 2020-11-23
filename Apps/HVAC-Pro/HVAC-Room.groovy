@@ -16,6 +16,7 @@
 **  but most significantly from Napalmcsr and the Keenectlite application.
 **  1.0.0 Initial Release.
 **  1.0.5 Added Home and Room Tile devices to coding.
+**  1.0.6 Changed how the parent child updates work to fix ghost updates.
 **
 **
 ** ---------------------------------------------------------------------------------*/
@@ -341,8 +342,9 @@ def tryAgain(){
     }
 }                                               
                                                
-                                               
+//**************************************************                                               
 // SEND UPDATES TO PARENT 
+/*
 def updateMaster(){
     if(!PauseRoom){
         infolog "Sending Room Values to Master"
@@ -356,8 +358,31 @@ def updateMaster(){
         debuglog "Child Values ${ChildMap}"
         parent.SetChildStats(ChildMap)   
 	    infolog "Master was Updated"
+        parent.childUpdateRequest(app.label)
     }
     else infolog "Room is paused no updates were sent to the parent."
+}
+*/
+
+//*
+def updateMaster(){
+     if(!PauseRoom){parent.childUpdateRequest(app.label)}
+      debuglog "Sent Update Request to Master"
+}
+//*/  
+
+def getRoomData(){
+        infolog "Sending Room Values to Master"
+        ChildMap = [:]
+        ChildMap.room = app.label
+        ChildMap.area = state.area
+        ChildMap.delta = state.delta  
+        ChildMap.setpoint = state.roomSetPoint
+        ChildMap.currentTemperature = state.currentTemperature
+        if(humSensor)ChildMap.currentHumidity = state.currentHumidity
+        debuglog "Child Values ${ChildMap}" 
+	    infolog "Master was Updated"
+        return(ChildMap)
 }
 
 // UPDATE CHILD TILE DEVICE
