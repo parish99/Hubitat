@@ -212,7 +212,9 @@ def HVACstate(){
     return state.operState
 }
 
+//**************************************************************
 // Called from child when there is an update for the parent
+/*
 def SetChildStats(RoomStat){
    infolog "Recieved Child Data : ${RoomStat}"
    if(RoomStat.delta==0) RoomStat.delta=(-0.1) //avoids a bunch of divide by zero crap
@@ -227,6 +229,37 @@ def SetChildStats(RoomStat){
    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
    debuglog "*** Verify ${[RoomStat.room]}:${[RoomStat.delta]}:${state.roomMap[RoomStat.room].delta} *** ${state.roomMap}"
 }
+*/
+def childUpdateRequest(child){
+state.updateFlag=1 
+    debuglog "${child} Requested an Update"
+}    
+    
+def getChildData(){ 
+ 
+    childApps.each {child ->
+       RoomStat = child.getRoomData()    
+       infolog "Retrieved Child Data NEW DATA : ${RoomStat}"
+       if(RoomStat.delta==0) RoomStat.delta=(-0.1) //avoids a bunch of divide by zero crap
+       if (!state.roomMap[RoomStat.room]) state.roomMap[RoomStat.room]=[:]
+       state.roomMap[RoomStat.room].area= RoomStat.area
+       state.roomMap[RoomStat.room].delta= RoomStat.delta
+       state.childVentSize[RoomStat.room]= RoomStat.area
+       state.childDelta[RoomStat.room]= RoomStat.delta
+       infolog "Processed Room ${[RoomStat.room]}"
+       debuglog "Set Room Data:${[RoomStat.room]}:${state.roomMap[RoomStat.room]}"
+    }
+       
+       if(!Pause)runIn(10,childVentCalc)
+       if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
+       //debuglog "*** Verify ${[RoomStat.room]}:${[RoomStat.delta]}:${state.roomMap[RoomStat.room].delta} *** ${state.roomMap}"    
+
+       state.updateFlag=0 
+       debuglog "Turned off flag"
+}
+
+
+
 
 // ================ Do a Bunch of Math ================
 def childVentCalc(){
@@ -418,6 +451,9 @@ def update(){
     else if (state.operState=="Heating" && state.stage>99 && !Pause) sendVentUpdate()
     else if (state.operState=="Fan Only" && state.stage>99 && !Pause) sendVentUpdate()
     else if (state.blowerRun=="Closed" && state.stage>99 && !Pause) sendVentUpdate()
+    
+    if (state.updateFlag==1) getChildData()
+ 
     debuglog "** Cron ${state.stage}**"    
     //runIn(refresh,update)
 
