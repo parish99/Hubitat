@@ -17,6 +17,7 @@
 **  1.0.0 Initial Release.
 **  1.0.5 Added Home and Room Tile devices to coding.
 **  1.0.7 Changed how the parent child updates work to fix ghost updates.
+**  1.0.8 Refactored.
 **  
 **
 ** ---------------------------------------------------------------------------------*/
@@ -161,20 +162,18 @@ def initialize(){
 	infolog "Done init"      
 }
 
-
 def createRoomDevice() {
     def roomDevice = getChildDevice("vRoom_${app.id}")
 	if(!roomDevice) roomDevice = addChildDevice("gunz", "HVAC-RMD", "vRoom_${app.id}", null, [label: ("${app.label}"), name: thisName])
 }
 
-// EVENT HANDLERS
+// EVENT HANDLERS ==================================================
 def tempHandler(evt) {
 	infolog "Updated Temperature"
 	state.currentTemperature = evt.value.toFloat().round(1)
 	debuglog "Room Temperature set to ${state.currentTemperature}"
     if(tstatTemp){vStat.setTemperature(state.currentTemperature)}
     setDelta()
-	//updateMaster()
     if(vRoom)childTileUpdate()
 }
 
@@ -190,7 +189,6 @@ def motionAHandler(evt) {
     state.occupied = "Occupied"
 	state.Motion = evt.value.capitalize()
 	debuglog "Room Motion set to ${state.Motion}"
-	//updateMaster()
     if(vRoom)childTileUpdate()
 }
 
@@ -211,7 +209,6 @@ def fanHandler(evt) {
 def ventHandler(evt) {
 	infolog "Getting Vent Level for ${evt.device} value: ${evt.value}"
 	infolog "state.VentOpeningMap before =  ${state.VentOpeningMap}"
-	//state.VentOpeningMap = [:]
 	vents.each{ vent ->
 		debuglog "Getting Vent ${vent}"
 		state.VentOpeningMap[vent.displayName] =vent.currentValue("level")   
@@ -229,7 +226,6 @@ def setTstatHSP(evt) {
     state.roomSetPoint = state.HeatSetpoint
 	debuglog "Hot setpoint set to ${state.HeatSetpoint}"
     setDelta()
-    //updateMaster()
     if(vRoom)childTileUpdate()
 }
 
@@ -239,31 +235,20 @@ def setTstatCSP(evt) {
     state.roomSetPoint = state.CoolSetpoint
 	debuglog "Cold setpoint set to ${state.CoolSetpoint}"
     setDelta()
-    //updateMaster()
     if(vRoom)childTileUpdate()
 }
 
 def setVstatMode(evt) {
 	infolog "Room Thermostat Mode"
-	//state.HVACmode = evt.toLowerCase().capitalize() 
     state.HVACmode = vStat.currentValue("thermostatMode").toLowerCase().capitalize()    
     state.HVACstate = vStat.currentValue("thermostatOperatingState").toLowerCase().capitalize()      
        
     if (state.HVACmode=="Heat") state.roomSetPoint = state.HeatSetpoint
     else state.roomSetPoint = state.CoolSetpoint 
-    //setDelta()
 	debuglog "Room Thermostat set to ${state.HVACmode}"
     if(vRoom)childTileUpdate()
 }
-/*
-def setVstatState(evt) {
-	infolog "Set Room Thermostat State"
-	state.HVACstate = evt.value.toLowerCase().capitalize() 
-    state.HVACmode = vStat.currentValue("thermostatMode").toLowerCase().capitalize()
-	debuglog "Room Thermostat set to ${state.HVACstate}"
-    if(vRoom)childTileUpdate()
-}
-*/
+
 def setDelta(){
     if (state.HVACmode=="Heat") state.delta = (state.HeatSetpoint - state.currentTemperature).toFloat().round(1)
     else state.delta = (state.currentTemperature - state.CoolSetpoint).toFloat().round(1)
@@ -271,8 +256,6 @@ def setDelta(){
     updateMaster()
 }
 
-// CALLED FROM PARENT
-def getArea(){return(state.area)}
 def getBlower(blower){
     debuglog "Master Sent Blower State ${blower}"
     state.blower=blower
@@ -280,26 +263,15 @@ def getBlower(blower){
     if (state.blower=="Open"&&state.HVACmode=="Off") state.HVACstate="Idle"
     if(vRoom)childTileUpdate()
 }
-def getDelta(){return(state.delta)}
 
-def MainTstatModeChange(Mode) {
+def MainTstatModeChange(Mode){
     if(tstatMode){
         debuglog "Master Sent Thrermostat Update ${Mode}"   
         vStat.setThermostatMode(Mode.toLowerCase())
-        //state.HVACmode=Mode.toLowerCase().capitalize()
-        //setDelta()
-        //updateMaster()
     }
 }
 
-def MainTstatStateChange(State) {
-    if(tstatMode){
-        //debuglog "Master Sent Thrermostat Update ${State}"
-        //state.HVACstate=State.toLowerCase().capitalize()
-        //if(vRoom)childTileUpdate()
-    }
-}
-
+// Called From Parent to Udate Vent Position =========================
 def setArea(newArea){
     if(!PauseRoom){
         state.ventSetPoint=(100/state.area*newArea).toInteger()
@@ -307,18 +279,17 @@ def setArea(newArea){
     	vents.each{ vent ->  
             if(vent.currentValue("level")>=(state.ventSetPoint+3)||vent.currentValue("level")<=(state.ventSetPoint-3)){
                 vent.setLevel(state.ventSetPoint)
-                runIn(20,checkVentSP)
+                runIn(10,checkVentSP)
                 infolog "Set Vent ${vent} to ${state.ventSetPoint}%"
             }
             else infolog "No Change To ${vent} ${vent.currentValue("level")}% is in Range"
-        }
-    
-      if(vRoom)childTileUpdate() 
-      
+        }  
+      if(vRoom)childTileUpdate()     
     }
     else infolog "Room is paused updates from parent were not applied."
 }
 
+// Verify the Vent Moved to the Command Position
 def checkVentSP(){
     change=false
     comTemp=state.ventCom
@@ -327,7 +298,7 @@ def checkVentSP(){
         else state.ventCom="Online"
         infolog "Vent ${vent}: is ${state.ventCom}"
         if(state.ventCom!=comTemp)change=true
-        if(change==true)runIn(30,tryAgain)
+        if(change==true)runIn(10,tryAgain)
     }    
     if(vRoom && change)childTileUpdate()
 }
@@ -337,40 +308,18 @@ def tryAgain(){
             if(vent.currentValue("level")>=(state.ventSetPoint+3)||vent.currentValue("level")<=(state.ventSetPoint-3)){
                 vent.setLevel(state.ventSetPoint)
                 infolog "ReCheck Vent ${vent}: is ${state.ventCom}"
-                runIn(30,checkVentSP)
+                runIn(10,checkVentSP)
             }
     }
 }                                               
-                                               
-//**************************************************                                               
-// SEND UPDATES TO PARENT 
-/*
-def updateMaster(){
-    if(!PauseRoom){
-        infolog "Sending Room Values to Master"
-        ChildMap = [:]
-        ChildMap.room = app.label
-        ChildMap.area = state.area
-        ChildMap.delta = state.delta  
-        ChildMap.setpoint = state.roomSetPoint
-        ChildMap.currentTemperature = state.currentTemperature
-        if(humSensor)ChildMap.currentHumidity = state.currentHumidity
-        debuglog "Child Values ${ChildMap}"
-        parent.SetChildStats(ChildMap)   
-	    infolog "Master was Updated"
-        parent.childUpdateRequest(app.label)
-    }
-    else infolog "Room is paused no updates were sent to the parent."
-}
-*/
-
-//*
+                                                                                            
+// Tell Master Their is Update =============================
 def updateMaster(){
      if(!PauseRoom){parent.childUpdateRequest(app.label)}
       debuglog "Sent Update Request to Master"
-}
-//*/  
+}  
 
+// Called From Parent to Get Room Values ===================
 def getRoomData(){
         infolog "Sending Room Values to Master"
         ChildMap = [:]
@@ -385,7 +334,7 @@ def getRoomData(){
         return(ChildMap)
 }
 
-// UPDATE CHILD TILE DEVICE
+// Update Child Tile Device
 def childTileUpdate(){
     if(vRoom) {
         if (state.ventCom == "Unresponsive") state.msg = "Unresponsive"
