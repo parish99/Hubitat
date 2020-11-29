@@ -23,6 +23,7 @@
 **  1.0.0 Initial Release.
 **  1.0.5 Added Home and Room Tile devices to coding.
 **  1.0.7 Changed how the parent child updates work to fix ghost updates.
+**  1.0.8 Refactored.
 **  
 **
 ** ---------------------------------------------------------------------------------*/
@@ -56,21 +57,21 @@ def pageConfig(){
          input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 250, submitOnChange: true ,width: 4
          input "staticValue", "number", title: "Enter The Total in² of Static Vents:", defaultValue: 0, submitOnChange: true ,width: 4
          input "maxDelta", "number", title: "Enter The Max Room Delta (Degrees):", defaultValue: 3, submitOnChange: true ,width: 4
-         input "refresh", "number", title: "Enter The Minimum Update Interval (Seconds):", defaultValue: 60, submitOnChange: true
+         input "refresh", "number", title: "Enter The Minimum Time Between Vent Adjustments (Seconds):", defaultValue: 60, submitOnChange: true
+         input "scanTime", "number", title: "Enter The Scan Time Interval (0-59 Seconds):", defaultValue: 10, submitOnChange: true
       }
         
       section("Rooms"){
-        if (installed){
-            section("Rooms"){
-                app(name: "childRooms", appName: "HVAC-Room", namespace: "gunz", title: "Create New Room...", multiple: true)
-            }
-        }	
-      }
+            if (installed){
+                section("Rooms"){
+                    app(name: "childRooms", appName: "HVAC-Room", namespace: "gunz", title: "Create New Room...", multiple: true)
+                }
+            }	
+      }   
         
-      section("HVAC Home Tile"){input(name: "HMDT" ,title: "Create A Home Tile Device?" ,multiple:false ,required:false ,type: "bool" ,submitOnChange:true, defaultValue:false)} 
-        
-	}
-}
+      section("HVAC Home Tile"){input(name: "HMDT" ,title: "Create A Home Tile Device?" ,multiple:false ,required:false ,type: "bool" ,submitOnChange:true, defaultValue:false)}     
+    }
+} // End Page Config
 
 /* ---------------------------------------------------------------------------------*/
 def installed(){
@@ -84,9 +85,9 @@ def updated(){
    
 def initialize(){
     unschedule()
-    schedule("*/${refresh} * * ? * * *",update)
     state.clear()
-    infolog "Initializing"
+    infolog "****************** Initializing ******************"
+    state.delayFlag=false
     subscribe(tStat, "thermostatMode", setTstatMode)
     debuglog "Getting local virtual Thermostat thermostatMode" 
 	state.thermostatMode = tStat.currentValue("thermostatMode").toLowerCase().capitalize()
@@ -96,9 +97,13 @@ def initialize(){
     state.operState = tStat.currentValue("thermostatOperatingState").toLowerCase().capitalize()
     debuglog "Main TstatState : ${state.operState}"
     state.currentTemperature = tStat.currentValue("temperature")
-    if(HMDT)subscribe(tStat, "heatingSetpoint", setTstatHSP)
-    if(HMDT)subscribe(tStat, "coolingSetpoint", setTstatCSP)
-    if(HMDT)subscribe(tStat, "temperature", tempHandler)
+    if(HMDT){
+        subscribe(tStat, "heatingSetpoint", setTstatHSP)
+        subscribe(tStat, "coolingSetpoint", setTstatCSP)
+        subscribe(tStat, "temperature", tempHandler)
+        if(state.thermostatMode == "Heat") state.roomSetPoint = tStat.currentValue("heatingSetpoint")
+        if(state.thermostatMode == "Cool") state.roomSetPoint = tStat.currentValue("coolingSetpoint")
+    }
 
    if (blowerRun) {
    subscribe(blowerRun, "contact", blowerHandler)
@@ -106,7 +111,7 @@ def initialize(){
    state.blowerRun = blowerRun.currentValue("contact").toLowerCase().capitalize()
    childApps.each {child ->
        child.getBlower(state.blowerRun)
-    }    
+       }    
    }
    
    if (staticPres) {
@@ -117,7 +122,6 @@ def initialize(){
    
    debuglog "There are ${childApps.size()} installed child apps"
    state.roomMap = [:]
-
    childApps.each {child ->
       debuglog "Child app: ${child.label}"
       state.roomMap[child.label]=[:]
@@ -127,19 +131,13 @@ def initialize(){
       state.childVentPCT= [:]
    }  
     
-   infolog "Getting Child Values"
-   childApps.each {child ->
-       state.roomMap[child.label].area=child.getArea()
-       state.roomMap[child.label].delta=child.getDelta()
-       state.childVentSize[child.label]=state.roomMap[child.label].area
-       state.childDelta[child.label]=state.roomMap[child.label].delta
-       debuglog "Initial Room Data:${[child.label]}:${state.roomMap[child.label]}"
-   }   
-    childVentCalc()   
-    update()
+// Getting Initial Child Values
+    getChildData() 
+    schedule("*/${scanTime} * * ? * * *",update)
+    update()  
     if(HMDT)createDataTile()
-    
 }
+
 /* ---------------------------------------------------------------------------------*/
 
 def createDataTile() {
@@ -185,7 +183,7 @@ def pressureHandler(evt){
 def setTstatHSP(evt) {
 	infolog "Updated Room Heat Setpoint"
     state.HeatSetpoint = evt.value.toFloat()
-    state.roomSetPoint = state.HeatSetpoint
+    //state.roomSetPoint = state.HeatSetpoint
 	debuglog "Hot setpoint set to ${state.HeatSetpoint}"
     childTileUpdate()
 }
@@ -193,7 +191,7 @@ def setTstatHSP(evt) {
 def setTstatCSP(evt) {
 	infolog "Updated Cool Setpoint"
     state.CoolSetpoint = evt.value.toFloat()
-    state.roomSetPoint = state.CoolSetpoint
+    //state.roomSetPoint = state.CoolSetpoint
 	debuglog "Cold setpoint set to ${state.CoolSetpoint}"
     childTileUpdate()
 }
@@ -215,32 +213,17 @@ def HVACstate(){
 
 //**************************************************************
 // Called from child when there is an update for the parent
-/*
-def SetChildStats(RoomStat){
-   infolog "Recieved Child Data : ${RoomStat}"
-   if(RoomStat.delta==0) RoomStat.delta=(-0.1) //avoids a bunch of divide by zero crap
-   if (!state.roomMap[RoomStat.room]) state.roomMap[RoomStat.room]=[:]
-   state.roomMap[RoomStat.room].area= RoomStat.area
-   state.roomMap[RoomStat.room].delta= RoomStat.delta
-   state.childVentSize[RoomStat.room]= RoomStat.area
-   state.childDelta[RoomStat.room]= RoomStat.delta
-   infolog "Processed Room ${[RoomStat.room]}"
-   debuglog "Set Room Data:${[RoomStat.room]}:${state.roomMap[RoomStat.room]}"
-   if(!Pause)runIn(10,childVentCalc)
-   if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
-   debuglog "*** Verify ${[RoomStat.room]}:${[RoomStat.delta]}:${state.roomMap[RoomStat.room].delta} *** ${state.roomMap}"
-}
-*/
 def childUpdateRequest(child){
-state.updateFlag=1 
-    debuglog "${child} Requested an Update"
-}    
-    
+    state.updateFlag=true 
+    infolog "${child} Requested an Update"
+} 
+
+// Get Room Data From All Rooms    
 def getChildData(){ 
- 
+    infolog "Getting Child Data"
     childApps.each {child ->
        RoomStat = child.getRoomData()    
-       infolog "Retrieved Child Data NEW DATA : ${RoomStat}"
+       infolog "Retrieved Child Data: ${RoomStat}"
        if(RoomStat.delta==0) RoomStat.delta=(-0.1) //avoids a bunch of divide by zero crap
        if (!state.roomMap[RoomStat.room]) state.roomMap[RoomStat.room]=[:]
        state.roomMap[RoomStat.room].area= RoomStat.area
@@ -250,17 +233,11 @@ def getChildData(){
        infolog "Processed Room ${[RoomStat.room]}"
        debuglog "Set Room Data:${[RoomStat.room]}:${state.roomMap[RoomStat.room]}"
     }
-       
-       if(!Pause)runIn(10,childVentCalc)
-       if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
-       //debuglog "*** Verify ${[RoomStat.room]}:${[RoomStat.delta]}:${state.roomMap[RoomStat.room].delta} *** ${state.roomMap}"    
 
-       state.updateFlag=0 
-       debuglog "Turned off flag"
+    childVentCalc()
+    if(HMDT)childTileUpdate()
+    state.updateFlag=false
 }
-
-
-
 
 // ================ Do a Bunch of Math ================
 def childVentCalc(){
@@ -276,7 +253,8 @@ def childVentCalc(){
 //Setup initial values for data 
     state.roomMap.each{k, v->  
         v.deltaWGT = (childApps.size() / state.areaTotal * v.area).toFloat()
-        v.newDelta = (v.delta / v.deltaWGT).toFloat()
+       // v.newDelta = (v.delta / v.deltaWGT).toFloat()
+        v.newDelta = (v.delta).toFloat()
         if (v.delta > maxDelta) v.initArea = v.area       
         if (v.delta < 0) v.initArea = 0
         if ((v.delta >= 0) && (v.delta <= maxDelta)) v.initArea = (v.area/maxDelta*v.delta).toFloat()
@@ -300,7 +278,8 @@ def childVentCalc(){
 
 // InitAreaSum is greater than or Equal to the Target
     if (state.initAreaSum >= targetArea) {
-           state.stage=100
+        infolog "Running Stage 1 Calculation"
+           state.stage=100  
            state.actDeltaSum=0
            state.roomMap.each{k, v->  
                if(v.delta>0) v.actDelta = v.newDelta
@@ -350,6 +329,7 @@ def childVentCalc(){
       
 // InitAreaSum is Less than Target and actAreaSum is Greater or Equal to Target
    if (state.initAreaSum < targetArea && state.actAreaSum > targetArea) {
+       infolog "Running Stage 2 Calculation"
         state.stage=200   
        state.actDeltaSum=0
            state.roomMap.each{k, v->  
@@ -393,6 +373,7 @@ def childVentCalc(){
      
 // InitAreaSum is Less than Target and actAreaSum is Less than Target (use inactive vents)
    if (state.actAreaSum < targetArea) {
+       infolog "Running Stage 3 Calculation"
          state.stage=300   
          state.actDeltaSum=0
          state.roomMap.each{k, v->  
@@ -445,45 +426,54 @@ def childVentCalc(){
    debuglog "Ran Vent Calculations ${state.roomMap}"   
    debuglog "Child Vent Map ${state.childVentSP}"  
    
-}// end calc
+}// *********** End Math Calculation
 
+// Cron Update Cylce Loop
 def update(){
-    if (state.operState=="Cooling" && state.stage>99 && !Pause) sendVentUpdate()
-    else if (state.operState=="Heating" && state.stage>99 && !Pause) sendVentUpdate()
-    else if (state.operState=="Fan Only" && state.stage>99 && !Pause) sendVentUpdate()
-    else if (state.blowerRun=="Closed" && state.stage>99 && !Pause) sendVentUpdate()
-    
-    if (state.updateFlag==1) getChildData()
- 
+    if (state.updateFlag && !Pause) getChildData()  
+    if (state.operState=="Cooling" && state.stage>99 && !state.delayFlag) sendVentUpdate()
+    else if (state.operState=="Heating" && state.stage>99 && !state.delayFlag) sendVentUpdate()
+    else if (state.operState=="Fan Only" && state.stage>99 && !state.delayFlag) sendVentUpdate()
+    else if (state.blowerRun=="Closed" && state.stage>99 && !state.delayFlag) sendVentUpdate() 
+    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
     debuglog "** Cron ${state.stage}**"    
-    //runIn(refresh,update)
-
 }
 
-def sendVentUpdate() {   
-    childApps.each {child ->
-        state.childVentSP.each{room-> 
-            if (child.label==room.key){
-                child.setArea(room.value)
-                debuglog "Sent New Vent Value to: ${child.label}:${room.value}"
-            }
-        }  
-    } 
-    infolog "Updated Child Vent Target Area: ${state.childVentSP}"
-    debuglog "****** Update Children Vents (Stage ${state.stage})******"
-    state.stage=0
-    if(HMDT)childTileUpdate()
+def sendVentUpdate() {
+    
+    if(!Pause){     
+        childApps.each {child ->
+            state.childVentSP.each{room-> 
+                if (child.label==room.key){
+                    child.setArea(room.value)
+                    infolog "Sent New Vent Value to: ${child.label}: ${room.value}"
+                }
+            }  
+        }
+        state.stage=0
+        runIn(refresh,delayOff)
+        debuglog "Updated Child Vent Target Area: ${state.childVentSP}"
+        debuglog "****** Update Children Vents (Stage ${state.stage})******"
+    }
+    
+    state.delayFlag=true
+    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
+    //if(HMDT)childTileUpdate()
 }
 
-// UPDATE CHILD TILE DEVICE
+def delayOff(){state.delayFlag=false}
+
+// Update Child Device Tile
 def childTileUpdate(){
     if(HMDT) {
         state.msg = "Online"
         fan = state.operState
         if(state.operState=="Idle" && state.blowerRun == "Closed") fan="Fan On"
+        if(state.thermostatMode == "Heat") state.roomSetPoint = tStat.currentValue("heatingSetpoint")
+        if(state.thermostatMode == "Cool") state.roomSetPoint = tStat.currentValue("coolingSetpoint")
         def roomDevice = getChildDevice("HMDT_${app.id}")
         roomDevice.setValue(state.thermostatMode,state.operState,state.roomSetPoint,state.currentTemperature,state.msg,state.childVentPCT,state.loopSum)
-        infolog "Updated Child Device "
+        infolog "Updated Child Device Tile "
         debuglog "Tile Data ${state.thermostatMode},${fan},${state.roomSetPoint},${state.currentTemperature},${state.msg},${state.childVentPCT},${state.loopSum}"
     }
 }
