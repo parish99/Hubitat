@@ -108,5 +108,5 @@ def setValue(tm,ts,sp,pv,msg,cvsp,lpsm){
 
     else tileDat = "<div style='color: black; height: 140%; background-color: white; font-size: 18px; position: absolute; left: 0; top: -20%; width: 130%;'><div style='position: absolute;top: 45%;left: 39%;transform: translate(-50%, -50%);'${tileDat}</div></div>"
     
-    sendEvent(name: "tileData", value: tileDat, isStateChange: true, displayed: true)
+    sendEvent(name: "tileData", value: tileDat, isStateChange: true, displayed: true) 
 }
