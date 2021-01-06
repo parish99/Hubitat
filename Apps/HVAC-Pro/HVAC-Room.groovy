@@ -56,7 +56,7 @@ def pageConfig(){
       section("Devices"){
          input "vStat", "capability.thermostat", title: "Room Thermostat used for setpoints", required: true
          input "vents", "capability.switchLevel", title: "Room Vents",multiple: true, required: true
-         input "tempSensor", "capability.temperatureMeasurement", title: "Room Temperature Sensor", multiple: false, required: true
+         input "tempSensor", "capability.temperatureMeasurement", title: "Room Temperature Sensor", multiple: true, required: true
          input "humSensor", "capability.relativeHumidityMeasurement", title: "Room Humidity Sensor", multiple: false, required: false
          input "luxSensor", "capability.illuminanceMeasurement", title: "Room Light Sensor", multiple: false, required: false
          input "fan", "capability.fanControl", title: "Room Fan", multiple: false, required: false
@@ -90,8 +90,10 @@ def initialize(){
     state.blower="Off"
     debuglog "Subscribe to tempSensor"
     subscribe(tempSensor, "temperature", tempHandler)
+   
     debuglog "Getting current Room Temperature" 
-    state.currentTemperature = tempSensor.currentValue("temperature")  
+    averageTemp()
+    //state.currentTemperature = tempSensor.currentValue("temperature")  
     
     debuglog "Subscribe to vents"
     subscribe(vents, "level", ventHandler)
@@ -169,12 +171,25 @@ def createRoomDevice() {
 
 // EVENT HANDLERS ==================================================
 def tempHandler(evt) {
-	infolog "Updated Temperature"
-	state.currentTemperature = evt.value.toFloat().round(1)
-	debuglog "Room Temperature set to ${state.currentTemperature}"
+	//infolog "Updated Temperature"
+    averageTemp()
+	//state.currentTemperature = evt.value.toFloat().round(1)
+	//infolog "Average Room Temperature Updated ${state.currentTemperature}"
     if(tstatTemp){vStat.setTemperature(state.currentTemperature)}
     setDelta()
     if(vRoom)childTileUpdate()
+}
+
+def averageTemp(){
+    def currentTemp=0
+    def n=0
+    tempSensor.each{sensor ->
+        debuglog "Getting Temperature From ${sensor} ${sensor.currentValue("temperature")}"
+        currentTemp = currentTemp + sensor.currentValue("temperature")
+        ++n
+    }
+    state.currentTemperature = (currentTemp/n).toDouble().round(1)
+    infolog "Average Room Temperature Updated ${state.currentTemperature}"
 }
 
 def humHandler(evt) {
@@ -185,8 +200,8 @@ def humHandler(evt) {
 }
 
 def motionAHandler(evt) {
-	infolog "Motion Detected"
-    state.occupied = "Occupied"
+	infolog "Motion Update"
+    state.occupied = "Occupied" // Need to add room occupied code at some point to control thermostat away mode
 	state.Motion = evt.value.capitalize()
 	debuglog "Room Motion set to ${state.Motion}"
     if(vRoom)childTileUpdate()
