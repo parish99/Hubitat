@@ -55,7 +55,8 @@ def pageConfig(){
          input name : "blowerRun", type : "capability.contactSensor", title: "Blower Running Input", required: false
          input name : "overPressure", type : "capability.contactSensor", title: "Static Pressure Overpressure Switch", required: false
          input "targetArea", "number", title: "Enter The Target Area in²:", defaultValue: 250, submitOnChange: true ,width: 4
-         input "staticValue", "number", title: "Enter The Total in² of Static Vents:", defaultValue: 0, submitOnChange: true ,width: 4
+         input "targetAreaMax", "number", title: "Enter The Maximum Target Area in²:", defaultValue: 300, submitOnChange: true ,width: 4
+       //  input "staticValue", "number", title: "Enter The Total in² of Static Vents:", defaultValue: 0, submitOnChange: true ,width: 4
          input "maxDelta", "number", title: "Enter The Max Room Delta (Degrees):", defaultValue: 3, submitOnChange: true ,width: 4
          input "refresh", "number", title: "Enter The Minimum Time Between Vent Adjustments (Seconds):", defaultValue: 60, submitOnChange: true
          input "scanTime", "number", title: "Enter The Scan Time Interval (0-59 Seconds):", defaultValue: 10, submitOnChange: true
@@ -224,13 +225,12 @@ def getChildData(){
     childApps.each {child ->
        RoomStat = child.getRoomData()    
        infolog "Retrieved Child Data: ${RoomStat}"
-       if(RoomStat.delta==0) RoomStat.delta=(-0.1) //avoids a bunch of divide by zero crap
+       if(RoomStat.delta==0) RoomStat.delta=(-0.1) //avoids a bunch of divide by zero errors
        if (!state.roomMap[RoomStat.room]) state.roomMap[RoomStat.room]=[:]
        state.roomMap[RoomStat.room].area= RoomStat.area
        state.roomMap[RoomStat.room].delta= RoomStat.delta
        state.childVentSize[RoomStat.room]= RoomStat.area
        state.childDelta[RoomStat.room]= RoomStat.delta
-       infolog "Processed Room ${[RoomStat.room]}"
        debuglog "Set Room Data:${[RoomStat.room]}:${state.roomMap[RoomStat.room]}"
     }
 
@@ -435,8 +435,9 @@ def update(){
     else if (state.operState=="Heating" && state.stage>99 && !state.delayFlag) sendVentUpdate()
     else if (state.operState=="Fan Only" && state.stage>99 && !state.delayFlag) sendVentUpdate()
     else if (state.blowerRun=="Closed" && state.stage>99 && !state.delayFlag) sendVentUpdate() 
+    //else if (state.stage>99 && !state.delayFlag) sendVentUpdate()
     if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
-    debuglog "** Cron ${state.stage}**"    
+    debuglog "** Stage ${state.stage}**"    
 }
 
 def sendVentUpdate() {
