@@ -445,7 +445,7 @@ def update(){
     if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."   
     //debuglog "**Update Cron, Vents will update when HVAC is running, (Math Stage = ${state.stage})**" 
     if (state.blowerRun=="Closed") debuglog "** Update Cron, Vents will update every ${refresh} seconds **"  
-    if (!state.blowerRun=="Closed") debuglog "** Update Cron, Vents will update when HVAC is running **"  
+    if (state.blowerRun!="Closed") debuglog "** Update Cron, Vents will update when HVAC is running **"  
 }
 
 // Update the child device vent values
