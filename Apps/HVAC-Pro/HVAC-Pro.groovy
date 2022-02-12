@@ -98,6 +98,7 @@ def initialize(){
     state.operState = tStat.currentValue("thermostatOperatingState").toLowerCase().capitalize()
     debuglog "Main TstatState : ${state.operState}"
     state.currentTemperature = tStat.currentValue("temperature")
+    
     if(HMDT){
         subscribe(tStat, "heatingSetpoint", setTstatHSP)
         subscribe(tStat, "coolingSetpoint", setTstatCSP)
@@ -132,10 +133,12 @@ def initialize(){
       state.childVentPCT= [:]
    }  
     
-// Getting Initial Child Values
+    // Getting Initial Child Values, setup cron schedule, and start update loop
     getChildData() 
     schedule("*/${scanTime} * * ? * * *",update)
-    update()  
+    update() 
+    
+    // Make a child tile device if requested
     if(HMDT)createDataTile()
 }
 
@@ -430,24 +433,28 @@ def childVentCalc(){
 
 // Cron Update Cylce Loop
 def update(){
-    if (state.updateFlag && !Pause) getChildData()  
+    //if (state.updateFlag && !Pause) getChildData()  
+    if (state.updateFlag && !Pause && (state.blowerRun=="Closed" | !state.operState=="Idle")) getChildData()  
+    
     if (state.operState=="Cooling" && state.stage>99 && !state.delayFlag) sendVentUpdate()
     else if (state.operState=="Heating" && state.stage>99 && !state.delayFlag) sendVentUpdate()
     else if (state.operState=="Fan Only" && state.stage>99 && !state.delayFlag) sendVentUpdate()
     else if (state.blowerRun=="Closed" && state.stage>99 && !state.delayFlag) sendVentUpdate() 
     //else if (state.stage>99 && !state.delayFlag) sendVentUpdate()
-    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
-    debuglog "** Stage ${state.stage}**"    
+    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."   
+    //debuglog "**Update Cron, Vents will update when HVAC is running, (Math Stage = ${state.stage})**" 
+    if (state.blowerRun=="Closed") debuglog "** Update Cron, Vents will update every ${refresh} seconds **"  
+    if (!state.blowerRun=="Closed") debuglog "** Update Cron, Vents will update when HVAC is running **"  
 }
 
-def sendVentUpdate() {
-    
+// Update the child device vent values
+def sendVentUpdate() {   
     if(!Pause){     
         childApps.each {child ->
             state.childVentSP.each{room-> 
                 if (child.label==room.key){
                     child.setArea(room.value)
-                    infolog "Sent New Vent Value to: ${child.label}: ${room.value}"
+                    infolog "*** Sent New Vent Value to: ${child.label}: ${room.value}"
                 }
             }  
         }
@@ -457,11 +464,13 @@ def sendVentUpdate() {
         debuglog "****** Update Children Vents (Stage ${state.stage})******"
     }
     
-    state.delayFlag=true
+    state.delayFlag=true // Turns vent update inhibit flag
+    
     if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
     //if(HMDT)childTileUpdate()
 }
 
+// Turn off the vent update delay inhibit flag
 def delayOff(){state.delayFlag=false}
 
 // Update Child Device Tile
