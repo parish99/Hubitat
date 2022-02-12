@@ -17,13 +17,14 @@
 **  See the License for the specific language governing permissions and
 **  limitations under the License.
 **
-**  Version Notes // 06-13-20
+**  Version Notes // 02-12-22
 **  Multiple sections of code borrowed or inspired from other hubitat code,
 **  but most significantly from Napalmcsr and the Keenectlite application.
 **  1.0.0 Initial Release.
 **  1.0.5 Added Home and Room Tile devices to coding.
 **  1.0.7 Changed how the parent child updates work to fix ghost updates.
 **  1.0.8 Refactored.
+**  1.0.9 Debug Display Changes.
 **  
 **
 ** ---------------------------------------------------------------------------------*/
