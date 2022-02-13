@@ -17,14 +17,14 @@
 **  See the License for the specific language governing permissions and
 **  limitations under the License.
 **
-**  Version Notes // 02-12-22
+**  Version Notes
 **  Multiple sections of code borrowed or inspired from other hubitat code,
 **  but most significantly from Napalmcsr and the Keenectlite application.
 **  1.0.0 Initial Release.
 **  1.0.5 Added Home and Room Tile devices to coding.
 **  1.0.7 Changed how the parent child updates work to fix ghost updates.
-**  1.0.8 Refactored.
-**  1.0.9 Debug Display Changes.
+**  1.0.8 Refactored. 06/13/20
+**  1.0.9 Changed the vent update inhibit code (inhibit runIn not always resetting) and added more debugging. 02/13/22
 **  
 **
 ** ---------------------------------------------------------------------------------*/
@@ -434,45 +434,40 @@ def childVentCalc(){
 
 // Cron Update Cylce Loop
 def update(){
-    //if (state.updateFlag && !Pause) getChildData()  
-    if (state.updateFlag && !Pause && (state.blowerRun=="Closed" | !state.operState=="Idle")) getChildData()  
-    
-    if (state.operState=="Cooling" && state.stage>99 && !state.delayFlag) sendVentUpdate()
-    else if (state.operState=="Heating" && state.stage>99 && !state.delayFlag) sendVentUpdate()
-    else if (state.operState=="Fan Only" && state.stage>99 && !state.delayFlag) sendVentUpdate()
-    else if (state.blowerRun=="Closed" && state.stage>99 && !state.delayFlag) sendVentUpdate() 
-    //else if (state.stage>99 && !state.delayFlag) sendVentUpdate()
-    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."   
-    //debuglog "**Update Cron, Vents will update when HVAC is running, (Math Stage = ${state.stage})**" 
-    if (state.blowerRun=="Closed") debuglog "** Update Cron, Vents will update every ${refresh} seconds **"  
-    if (state.blowerRun!="Closed") debuglog "** Update Cron, Vents will update when HVAC is running **"  
+    //state.delayFlag=false
+    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."             
+    else if (state.blowerRun=="Closed"|!state.operState=="Idle") debuglog "** Update Cron, Vents will update every ${refresh} seconds **"  
+    else if (state.blowerRun!="Closed"|state.operState=="Idle") debuglog "** Update Cron, Thermostat is ${state.operState} and Blower Running is ${state.blowerRun} **"  
+        
+    if(!Pause)debuglog "** Thermostat = ${state.operState}, Blower = ${state.blowerRun}, Update flag = ${state.updateFlag}, Stage = ${state.stage}, Delay = ${state.delayFlag} **"   
+    if ((state.blowerRun=="Closed" | !state.operState=="Idle") && state.updateFlag && !Pause ) getChildData()  
+    if ((state.blowerRun=="Closed"|!state.operState=="Idle") && state.stage>99 && !state.delayFlag && !Pause) sendVentUpdate()  
 }
 
 // Update the child device vent values
-def sendVentUpdate() {   
+def sendVentUpdate() { 
     if(!Pause){     
-        childApps.each {child ->
-            state.childVentSP.each{room-> 
-                if (child.label==room.key){
-                    child.setArea(room.value)
-                    infolog "*** Sent New Vent Value to: ${child.label}: ${room.value}"
-                }
-            }  
-        }
+            childApps.each {child ->
+                state.childVentSP.each{room-> 
+                    if (child.label==room.key){
+                        child.setArea(room.value)
+                        infolog "*** Sent New Vent Value to: ${child.label}: ${room.value} ***"
+            }   }   }
+        
         state.stage=0
+        state.delayFlag=true // Turns on vent update inhibit flag
         runIn(refresh,delayOff)
-        debuglog "Updated Child Vent Target Area: ${state.childVentSP}"
-        debuglog "****** Update Children Vents (Stage ${state.stage})******"
+        debuglog "** Started ${refresh} second vent update delay **."
+        //debuglog "Updated Child Vent Target Area: ${state.childVentSP}"
+        //debuglog "*** Update Children Vents (Stage ${state.stage})***" 
     }
-    
-    state.delayFlag=true // Turns vent update inhibit flag
-    
-    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."
-    //if(HMDT)childTileUpdate()
 }
 
 // Turn off the vent update delay inhibit flag
-def delayOff(){state.delayFlag=false}
+def delayOff(){
+    state.delayFlag=false
+    debuglog "** Delay Inhibit Reset **"
+}
 
 // Update Child Device Tile
 def childTileUpdate(){
