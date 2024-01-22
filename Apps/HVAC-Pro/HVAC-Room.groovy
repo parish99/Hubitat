@@ -357,7 +357,7 @@ def childTileUpdate(){
         
         def roomDevice = getChildDevice("vRoom_${app.id}")
         roomDevice.setValues(state.occupied,state.Motion,state.HVACmode,state.HVACstate,state.roomSetPoint,state.currentTemperature,state.currentHumidity,state.ventSetPoint,state.currentVentLevel,state.fanSpeed,state.currentShadeLevel,state.currentLux,state.msg)
-        infolog "Updated Child Device "
+        infolog "Updated Child Device ${roomDevice}"
     }
 }
 
