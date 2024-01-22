@@ -25,8 +25,7 @@
 **  1.0.7 Changed how the parent child updates work to fix ghost updates.
 **  1.0.8 Refactored. 06/13/20
 **  1.0.9 Changed the vent update inhibit code (inhibit runIn not always resetting) and added more debugging. 02/13/22
-**  1.0.10 Changed the update loop issues 01/21/24
-**  
+**  1.0.10 Reworked the update method for better reliablity
 **
 ** ---------------------------------------------------------------------------------*/
 
@@ -90,11 +89,10 @@ def initialize(){
     unschedule()
     state.clear()
     infolog "****************** Initializing ******************"
-    state.delayFlag=false
-    state.delayStart = 0
+    state.delayStart=0
     subscribe(tStat, "thermostatMode", setTstatMode)
     debuglog "Getting local virtual Thermostat thermostatMode" 
-    state.thermostatMode = tStat.currentValue("thermostatMode").toLowerCase().capitalize()
+	state.thermostatMode = tStat.currentValue("thermostatMode").toLowerCase().capitalize()
     debuglog "Main TstatState : ${state.thermostatMode}"    
     debuglog "Getting Thermostat running State" 
     subscribe(tStat, "thermostatOperatingState", OperatingStateHandler)  
@@ -156,6 +154,7 @@ def setTstatMode(evt){
 	infolog "Running setTstatMode"
 	state.thermostatMode = evt.value.toLowerCase().capitalize()
     debuglog "Sending TStat Change to Zones ${state.thermostatMode}"
+    state.delayFlag=false
 	childApps.each {child -> 
         child.MainTstatModeChange(state.thermostatMode)
     }
@@ -173,6 +172,7 @@ def OperatingStateHandler(evt){
 def blowerHandler(evt){
     debuglog "Blower Run event : ${evt}"
     state.blowerRun = evt.value.toLowerCase().capitalize()
+    state.delayFlag=false
     childApps.each {child ->
         child.getBlower(state.blowerRun)
     }
@@ -436,24 +436,22 @@ def childVentCalc(){
 
 // Cron Update Cylce Loop
 def update(){
-    //state.delayFlag=false
-    if(Pause) infolog "HVAC-Pro is Paused, no updates will be sent to rooms."    
-    //if ((state.blowerRun=="Closed"|!state.operState=="Idle")&& !Pause) debuglog "** Update Cron, Vents will update every ${refresh} seconds **"  
-    //else debuglog "** Update Cron, Thermostat is ${state.operState} and Blower Running is ${state.blowerRun} No adjustments are being sent**"  
-    //else if (state.blowerRun!="Closed"|state.operState=="Idle") debuglog "** Update Cron, Thermostat is ${state.operState} and Blower Running is ${state.blowerRun} **"  
-    //timeleft = 0
-    //timeleft = (refresh-(now()-state.delayStart))
-    //if(state.delayFlag) debuglog "** Update Cron, Vents will update in ${timeleft} seconds **" 
-    
-    if(state.delayStart > 0){
-        debuglog "** Update Cron, Vents update delay ends in ${refresh-((now()-state.delayStart)*0.001)} seconds **" 
-        if(((now()-state.delayStart)*0.001)>refresh) state.delayStart=0
+    if(Pause){ infolog "HVAC-Pro is Paused, no updates will be sent to rooms."  }
+    else{
+        elapsed=0
+        remaining=0
+        
+        if(state.delayStart > 0){
+            elapsed = ((now()-state.delayStart)*0.001)
+            remaining = refresh-((now()-state.delayStart)*0.001)
+            infolog "** Update Cron, Vent update delay ends in ${remaining} seconds **" 
+            if(elapsed > refresh) {state.delayStart=0}
+        }
+     
+        debuglog "** Thermostat = ${state.operState}, Blower = ${state.blowerRun}, Update flag = ${state.updateFlag}, Stage = ${state.stage}, Delayed = ${elapsed} **" 
+        if ((state.blowerRun=="Closed"|!state.operState=="Idle") && state.updateFlag) getChildData()  
+        if ((state.blowerRun=="Closed"|!state.operState=="Idle") && state.stage>99 && (state.delayStart==0)) sendVentUpdate()  
     }
-    
-    if(!Pause)debuglog "** Thermostat = ${state.operState}, Blower = ${state.blowerRun}, Update flag = ${state.updateFlag}, Stage = ${state.stage}, Delay = ${state.delayFlag} , Delay = ${((now()-state.delayStart)*0.001)} **"   
-    if ((state.blowerRun=="Closed"|!state.operState=="Idle") && state.updateFlag && !Pause ) getChildData()  
-    if ((state.blowerRun=="Closed"|!state.operState=="Idle") && state.stage>99 && !state.delayFlag && !Pause) sendVentUpdate()
-    //if ((state.blowerRun=="Closed"|!state.operState=="Idle") && state.stage>99 && (state.delayStart==0) && !Pause) sendVentUpdate()  
 }
 
 // Update the child device vent values
@@ -467,13 +465,7 @@ def sendVentUpdate() {
             }   }   }
         
         state.stage=0
-        //state.delayStart = now()
-        delayOn()
-        //state.delayFlag=true // Turns on vent update inhibit flag
-        //runIn(refresh,delayOff)
-        //debuglog "** Started ${refresh} second vent update delay **."
-        ///debuglog "Updated Child Vent Target Area: ${state.childVentSP}"
-        ///debuglog "*** Update Children Vents (Stage ${state.stage})***" 
+        state.delayStart = now()
     }
 }
 
@@ -502,7 +494,7 @@ def childTileUpdate(){
         if(state.thermostatMode == "Cool") state.roomSetPoint = tStat.currentValue("coolingSetpoint")
         def roomDevice = getChildDevice("HMDT_${app.id}")
         roomDevice.setValue(state.thermostatMode,state.operState,state.roomSetPoint,state.currentTemperature,state.msg,state.childVentPCT,state.loopSum)
-        infolog "Updated Child Device Tile "
+        infolog "Updated Child Device Tile ${roomDevice} "
         debuglog "Tile Data ${state.thermostatMode},${fan},${state.roomSetPoint},${state.currentTemperature},${state.msg},${state.childVentPCT},${state.loopSum}"
     }
 }
