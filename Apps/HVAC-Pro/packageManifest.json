@@ -2,9 +2,9 @@
 	"packageName": "HVAC-Pro",
 	"minimumHEVersion": "2.1.9",
 	"author": "Jason Parish",
-	"version": "1.0.9",
-	"dateReleased": "2020-05-28",
-	"releaseNotes": "Initial release version",
+	"version": "1.0.10",
+	"dateReleased": "01/21/2024",
+	"releaseNotes": "Fixed update loop issue",
 	"documentationLink": "https://github.com/parish99/Hubitat/blob/master/README.md",
 	"communityLink": "https://community.hubitat.com",
 	"apps" : [
